@@ -10,7 +10,7 @@
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
-  <!-- FIXED: downgraded to 2.1.16 to avoid ES module import error in browser -->
+
   <script src="https://unpkg.com/recharts@2.1.16/umd/Recharts.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
@@ -98,7 +98,7 @@
 <body class="h-full bg-[#F8FAFC] text-gray-800 antialiased overflow-hidden font-sans">
   <div id="root" class="h-full"></div>
 
-  <script type="text/babel" data-type="module">
+  <script type="module">
     const { useState, useMemo, useEffect } = React;
     const {
       ResponsiveContainer, LineChart, Line, AreaChart, Area, BarChart, Bar,
