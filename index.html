@@ -13,6 +13,13 @@
 
   <script src="https://unpkg.com/recharts@2.1.16/umd/Recharts.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script>
+    Babel.registerPreset("react-classic", {
+      presets: [
+        [Babel.availablePresets["react"], { runtime: "classic" }]
+      ]
+    });
+  </script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -98,7 +105,7 @@
 <body class="h-full bg-[#F8FAFC] text-gray-800 antialiased overflow-hidden font-sans">
   <div id="root" class="h-full"></div>
 
-  <script type="module">
+  <script type="text/babel" data-presets="react-classic,env">
     const { useState, useMemo, useEffect } = React;
     const {
       ResponsiveContainer, LineChart, Line, AreaChart, Area, BarChart, Bar,
