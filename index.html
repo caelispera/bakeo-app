@@ -1,0 +1,3390 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BAKEO Attendance Management System - Powered by ASSETRA</title>
+
+  <!-- CDNs -->
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- React 18 & ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+
+  <!-- Prop-types -->
+  <script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
+
+  <!-- Recharts (React charting library) -->
+  <script src="https://unpkg.com/recharts@2.1.16/umd/Recharts.js"></script>
+
+  <!-- Babel Standalone to compile JSX in browser -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Google Fonts - Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
+  <!-- Tailwind Configuration -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            navy: {
+              50: '#F0F4F8',
+              100: '#D9E2EC',
+              200: '#BCCCDC',
+              300: '#9FB3C8',
+              400: '#829AB1',
+              500: '#627D98',
+              600: '#486581',
+              700: '#334E68',
+              800: '#0F2340', // Sidebar Navy
+              900: '#071424', // Deepest Navy
+            },
+            accent: {
+              orange: '#F97316', // Orange Accent
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom CSS adjustments for scrollbars & animations */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #F1F5F9;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #CBD5E1;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94A3B8;
+    }
+
+    @keyframes pulse-ring {
+      0% {
+        transform: scale(0.95);
+        opacity: 0.5;
+      }
+
+      50% {
+        transform: scale(1.1);
+        opacity: 0.8;
+      }
+
+      100% {
+        transform: scale(0.95);
+        opacity: 0.5;
+      }
+    }
+
+    .status-pulse {
+      animation: pulse-ring 2s infinite ease-in-out;
+    }
+
+    @keyframes slide-in {
+      from {
+        transform: translateY(-1rem);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .animate-slide-in {
+      animation: slide-in 0.2s ease-out forwards;
+    }
+  </style>
+</head>
+
+<body class="h-full bg-[#F8FAFC] text-gray-800 antialiased overflow-hidden font-sans">
+  <div id="root" class="h-full"></div>
+
+  <!-- React JSX Application -->
+  <script type="text/babel">
+    const { useState, useMemo, useEffect } = React;
+    const {
+      ResponsiveContainer, LineChart, Line, AreaChart, Area, BarChart, Bar,
+      XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell
+    } = window.Recharts;
+
+    // Inline SVG Icon Library Component
+    const Icon = ({ name, className = "w-5 h-5", ...props }) => {
+      const icons = {
+        dashboard: (
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z" />
+        ),
+        staff: (
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+        ),
+        attendance: (
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        ),
+        reports: (
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        ),
+        leave: (
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        ),
+        departments: (
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+        ),
+        devices: (
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+        ),
+        notifications: (
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+        ),
+        search: (
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        ),
+        filter: (
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+        ),
+        plus: (
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+        ),
+        check: (
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        ),
+        x: (
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        ),
+        settings: (
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065zM15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        ),
+        refresh: (
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.28 15H18" />
+        ),
+        chevronLeft: (
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        ),
+        chevronRight: (
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        ),
+        mail: (
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        ),
+        phone: (
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+        ),
+        mapPin: (
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0zM15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+        ),
+        user: (
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        ),
+        alertCircle: (
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        ),
+        info: (
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        ),
+        download: (
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+        ),
+        externalLink: (
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 00-2 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+        ),
+        flame: (
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
+        ),
+        edit: (
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+        )
+      };
+
+      return (
+        <svg
+          className={className}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          {...props}
+        >
+          {icons[name] || <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />}
+        </svg>
+      );
+    };
+
+    // Constant parameters
+    const DEPARTMENTS = ['HSE', 'Finance', 'IT', 'Operations', 'Admin', 'Engineering', 'Marine Services'];
+
+    const DEPT_COLORS = {
+      'HSE': { bg: 'bg-red-50 text-red-700 border-red-200', dot: 'bg-red-500', hover: 'hover:bg-red-50', chart: '#EF4444' },
+      'Finance': { bg: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500', hover: 'hover:bg-emerald-50', chart: '#10B981' },
+      'IT': { bg: 'bg-indigo-50 text-indigo-700 border-indigo-200', dot: 'bg-indigo-500', hover: 'hover:bg-indigo-50', chart: '#6366F1' },
+      'Operations': { bg: 'bg-blue-50 text-blue-700 border-blue-200', dot: 'bg-blue-500', hover: 'hover:bg-blue-50', chart: '#3B82F6' },
+      'Admin': { bg: 'bg-pink-50 text-pink-700 border-pink-200', dot: 'bg-pink-500', hover: 'hover:bg-pink-50', chart: '#EC4899' },
+      'Engineering': { bg: 'bg-amber-50 text-amber-700 border-amber-200', dot: 'bg-amber-500', hover: 'hover:bg-amber-50', chart: '#F59E0B' },
+      'Marine Services': { bg: 'bg-teal-50 text-teal-700 border-teal-200', dot: 'bg-teal-500', hover: 'hover:bg-teal-50', chart: '#14B8A6' },
+    };
+
+    const STATUS_COLORS = {
+      'Checked In': { bg: 'bg-green-100 text-green-800 border border-green-200', dot: 'bg-green-500' },
+      'Late': { bg: 'bg-amber-100 text-amber-800 border border-amber-200', dot: 'bg-amber-500' },
+      'Checked Out': { bg: 'bg-blue-100 text-blue-800 border border-blue-200', dot: 'bg-blue-500' },
+      'NFC Pending': { bg: 'bg-purple-100 text-purple-800 border border-purple-200', dot: 'bg-purple-500' },
+      'Absent': { bg: 'bg-red-100 text-red-800 border border-red-200', dot: 'bg-red-500' },
+      'Working': { bg: 'bg-teal-100 text-teal-800 border border-teal-200', dot: 'bg-teal-500' },
+      'On Leave': { bg: 'bg-gray-100 text-gray-800 border border-gray-200', dot: 'bg-gray-500' }
+    };
+
+    const INITIAL_EMPLOYEES = [
+      { id: 'EMP0001', name: 'John Doe', email: 'john.doe@bakeo.com', department: 'IT', position: 'IT Manager', nfcId: '04A1 B2C3 D4E1', shift: 'Day Shift 08:00-17:00', attendanceRate: 95, status: 'Checked In', active: true },
+      { id: 'EMP0002', name: 'Jane Smith', email: 'jane.smith@bakeo.com', department: 'Finance', position: 'Senior Accountant', nfcId: '04A1 B2C3 D4E2', shift: 'Day Shift 08:00-17:00', attendanceRate: 98, status: 'Checked In', active: true },
+      { id: 'EMP0003', name: 'Bob Johnson', email: 'bob.johnson@bakeo.com', department: 'Operations', position: 'Operations Lead', nfcId: '04A1 B2C3 D4E3', shift: 'Day Shift 08:00-17:00', attendanceRate: 88, status: 'Checked In', active: true },
+      { id: 'EMP0004', name: 'Alice Williams', email: 'alice.williams@bakeo.com', department: 'HSE', position: 'HSE Safety Officer', nfcId: '04A1 B2C3 D4E4', shift: 'Day Shift 08:00-17:00', attendanceRate: 92, status: 'Late', active: true },
+      { id: 'EMP0005', name: 'Charlie Brown', email: 'charlie.brown@bakeo.com', department: 'Admin', position: 'Admin Assistant', nfcId: '04A1 B2C3 D4E5', shift: 'Day Shift 08:00-17:00', attendanceRate: 75, status: 'Absent', active: true },
+      { id: 'EMP0006', name: 'David Miller', email: 'david.miller@bakeo.com', department: 'Engineering', position: 'Senior Engineer', nfcId: '04A1 B2C3 D4E6', shift: 'Day Shift 08:00-17:00', attendanceRate: 94, status: 'Checked Out', active: true },
+      { id: 'EMP0007', name: 'Eva Davis', email: 'eva.davis@bakeo.com', department: 'Marine Services', position: 'Vessel Captain', nfcId: '04A1 B2C3 D4E7', shift: 'Day Shift 08:00-17:00', attendanceRate: 96, status: 'Checked In', active: true },
+      { id: 'EMP0008', name: 'Frank Wilson', email: 'frank.wilson@bakeo.com', department: 'IT', position: 'Network Administrator', nfcId: '04A1 B2C3 D4E8', shift: 'Day Shift 08:00-17:00', attendanceRate: 91, status: 'Checked In', active: true },
+      { id: 'EMP0009', name: 'Grace Lee', email: 'grace.lee@bakeo.com', department: 'Finance', position: 'Financial Analyst', nfcId: '04A1 B2C3 D4E9', shift: 'Day Shift 08:00-17:00', attendanceRate: 97, status: 'Checked In', active: true },
+      { id: 'EMP0010', name: 'Henry Taylor', email: 'henry.taylor@bakeo.com', department: 'Operations', position: 'Shift Supervisor', nfcId: '04A1 B2C3 D4EA', shift: 'Day Shift 08:00-17:00', attendanceRate: 89, status: 'Late', active: true },
+      { id: 'EMP0011', name: 'Ivy Thomas', email: 'ivy.thomas@bakeo.com', department: 'HSE', position: 'Environment Specialist', nfcId: '04A1 B2C3 D4EB', shift: 'Day Shift 08:00-17:00', attendanceRate: 93, status: 'Checked In', active: true },
+      { id: 'EMP0012', name: 'Jack White', email: 'jack.white@bakeo.com', department: 'Admin', position: 'HR Specialist', nfcId: '04A1 B2C3 D4EC', shift: 'Day Shift 08:00-17:00', attendanceRate: 90, status: 'Checked In', active: true },
+      { id: 'EMP0013', name: 'Karen Black', email: 'karen.black@bakeo.com', department: 'Engineering', position: 'Mechanical Engineer', nfcId: '04A1 B2C3 D4ED', shift: 'Day Shift 08:00-17:00', attendanceRate: 87, status: 'NFC Pending', active: true },
+      { id: 'EMP0014', name: 'Leo Green', email: 'leo.green@bakeo.com', department: 'Marine Services', position: 'Marine Engineer', nfcId: '04A1 B2C3 D4EE', shift: 'Day Shift 08:00-17:00', attendanceRate: 95, status: 'Checked Out', active: true },
+      { id: 'EMP0015', name: 'Mia Harris', email: 'mia.harris@bakeo.com', department: 'IT', position: 'Software Developer', nfcId: '04A1 B2C3 D4EF', shift: 'Day Shift 08:00-17:00', attendanceRate: 99, status: 'Checked In', active: true },
+      { id: 'EMP0016', name: 'Nathan Clark', email: 'nathan.clark@bakeo.com', department: 'Finance', position: 'Accounts Payable', nfcId: '04A1 B2C3 D4F0', shift: 'Day Shift 08:00-17:00', attendanceRate: 94, status: 'Checked In', active: true },
+      { id: 'EMP0017', name: 'Olivia Martin', email: 'olivia.martin@bakeo.com', department: 'Operations', position: 'Logistics Coordinator', nfcId: '04A1 B2C3 D4F1', shift: 'Day Shift 08:00-17:00', attendanceRate: 86, status: 'Checked Out', active: true },
+      { id: 'EMP0018', name: 'Peter King', email: 'peter.king@bakeo.com', department: 'HSE', position: 'Safety Inspector', nfcId: '04A1 B2C3 D4F2', shift: 'Day Shift 08:00-17:00', attendanceRate: 91, status: 'Checked In', active: true },
+      { id: 'EMP0019', name: 'Quinn Scott', email: 'quinn.scott@bakeo.com', department: 'Admin', position: 'Office Manager', nfcId: '04A1 B2C3 D4F3', shift: 'Day Shift 08:00-17:00', attendanceRate: 92, status: 'Checked In', active: true },
+      { id: 'EMP0020', name: 'Rachel Adams', email: 'rachel.adams@bakeo.com', department: 'Engineering', position: 'Electrical Engineer', nfcId: '04A1 B2C3 D4F4', shift: 'Day Shift 08:00-17:00', attendanceRate: 93, status: 'NFC Pending', active: false },
+    ];
+
+    // Seeded linear congruential generator for deterministic mock database
+    const createRandom = (seed) => {
+      let s = seed;
+      return () => {
+        s = (s * 9301 + 49297) % 233280;
+        return s / 233280;
+      };
+    };
+
+    // Helper: generate 30 days of attendance logs
+    const generateHistoricalData = (employees) => {
+      const records = [];
+      const today = new Date('2026-06-11');
+
+      // Let's generate records from May 12, 2026 (30 days ago) to June 10, 2026 (yesterday)
+      for (let d = 30; d >= 1; d--) {
+        const currentDate = new Date(today);
+        currentDate.setDate(today.getDate() - d);
+        const dayStr = currentDate.toISOString().split('T')[0];
+
+        // Skip weekends
+        const dayOfWeek = currentDate.getDay();
+        if (dayOfWeek === 0 || dayOfWeek === 6) continue;
+
+        employees.forEach((emp, empIdx) => {
+          // Determinstic random per employee/day combo
+          const rand = createRandom(empIdx * 30 + d);
+
+          // 88% - 98% chance of attendance based on employee rate
+          const attendanceThreshold = (emp.attendanceRate / 100) - 0.05;
+          const isPresent = rand() < attendanceThreshold;
+
+          // Let's also check if they are on leave (5% chance of being on leave if not absent)
+          const isOnLeave = !isPresent && (rand() < 0.3);
+
+          let status = 'Absent';
+          let clockIn = null;
+          let clockOut = null;
+          let hours = 0;
+
+          if (isOnLeave) {
+            status = 'On Leave';
+          } else if (isPresent) {
+            const isLate = rand() < 0.12; // 12% late rate
+
+            if (isLate) {
+              status = 'Late';
+              // Late clock in: between 08:05 and 09:30
+              const lateMinutes = Math.floor(rand() * 85) + 5;
+              const hour = 8 + Math.floor(lateMinutes / 60);
+              const min = lateMinutes % 60;
+              clockIn = `${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}:00`;
+            } else {
+              status = 'Checked Out';
+              // On-time clock in: between 07:42 and 08:00
+              const earlyMinutes = Math.floor(rand() * 18);
+              clockIn = `07:${String(60 - earlyMinutes).padStart(2, '0')}:00`;
+            }
+
+            // Clock out: between 17:00 and 18:15
+            const leaveMinutes = Math.floor(rand() * 75);
+            clockOut = `17:${String(leaveMinutes).padStart(2, '0')}:00`;
+
+            // Calculate hours
+            const inParts = clockIn.split(':').map(Number);
+            const outParts = clockOut.split(':').map(Number);
+            const inDecimal = inParts[0] + inParts[1] / 60;
+            const outDecimal = outParts[0] + outParts[1] / 60;
+            hours = parseFloat((outDecimal - inDecimal).toFixed(1));
+          }
+
+          records.push({
+            id: `REC-${dayStr}-${emp.id}`,
+            employeeId: emp.id,
+            employeeName: emp.name,
+            department: emp.department,
+            date: dayStr,
+            clockIn,
+            clockOut,
+            hours,
+            status: status === 'Checked Out' && d === 0 ? 'Checked In' : status // Historical records are complete (checked out or absent/leave)
+          });
+        });
+      }
+
+      // Let's inject today's records (June 11, 2026) based on employee current status
+      const todayStr = '2026-06-11';
+      employees.forEach((emp) => {
+        let clockIn = null;
+        let clockOut = null;
+        let hours = 0;
+        let status = emp.status;
+
+        if (status === 'Checked In') {
+          clockIn = '07:54:00';
+        } else if (status === 'Late') {
+          clockIn = '08:42:00';
+        } else if (status === 'Checked Out') {
+          clockIn = '07:48:00';
+          clockOut = '17:02:00';
+          hours = 9.2;
+        } else if (status === 'Absent') {
+          // No clock in/out
+        } else if (status === 'NFC Pending') {
+          status = 'NFC Pending';
+        }
+
+        if (status !== 'NFC Pending') {
+          records.push({
+            id: `REC-${todayStr}-${emp.id}`,
+            employeeId: emp.id,
+            employeeName: emp.name,
+            department: emp.department,
+            date: todayStr,
+            clockIn,
+            clockOut,
+            hours,
+            status
+          });
+        }
+      });
+
+      return records;
+    };
+
+    const INITIAL_LEAVES = [
+      { id: 'LV001', employeeId: 'EMP0003', employeeName: 'Bob Johnson', department: 'Operations', leaveType: 'Annual', startDate: '2026-05-18', endDate: '2026-05-20', days: 3, reason: 'Family vacation trip', status: 'Approved', appliedOn: '2026-05-10' },
+      { id: 'LV002', employeeId: 'EMP0005', employeeName: 'Charlie Brown', department: 'Admin', leaveType: 'Sick', startDate: '2026-05-26', endDate: '2026-05-26', days: 1, reason: 'Severe dental migraine', status: 'Approved', appliedOn: '2026-05-25' },
+      { id: 'LV003', employeeId: 'EMP0010', employeeName: 'Henry Taylor', department: 'Operations', leaveType: 'Unpaid', startDate: '2026-06-15', endDate: '2026-06-18', days: 4, reason: 'Personal court settlement', status: 'Pending', appliedOn: '2026-06-08' },
+      { id: 'LV004', employeeId: 'EMP0004', employeeName: 'Alice Williams', department: 'HSE', leaveType: 'Medical', startDate: '2026-06-08', endDate: '2026-06-08', days: 1, reason: 'Routine clinical checkup', status: 'Approved', appliedOn: '2026-06-05' },
+      { id: 'LV005', employeeId: 'EMP0001', employeeName: 'John Doe', department: 'IT', leaveType: 'Annual', startDate: '2026-06-01', endDate: '2026-06-05', days: 5, reason: 'Summer holiday flight', status: 'Rejected', appliedOn: '2026-05-15' },
+      { id: 'LV006', employeeId: 'EMP0013', employeeName: 'Karen Black', department: 'Engineering', leaveType: 'Annual', startDate: '2026-06-22', endDate: '2026-06-25', days: 4, reason: 'Moving to a new apartment house', status: 'Pending', appliedOn: '2026-06-09' },
+      { id: 'LV007', employeeId: 'EMP0017', employeeName: 'Olivia Martin', department: 'Operations', leaveType: 'Sick', startDate: '2026-06-10', endDate: '2026-06-10', days: 1, reason: 'Food poisoning flu', status: 'Approved', appliedOn: '2026-06-09' },
+      { id: 'LV008', employeeId: 'EMP0020', employeeName: 'Rachel Adams', department: 'Engineering', leaveType: 'Medical', startDate: '2026-06-12', endDate: '2026-06-12', days: 1, reason: 'Ophthalmologist surgery follow-up', status: 'Pending', appliedOn: '2026-06-10' },
+      { id: 'LV009', employeeId: 'EMP0009', employeeName: 'Grace Lee', department: 'Finance', leaveType: 'Annual', startDate: '2026-05-04', endDate: '2026-05-08', days: 5, reason: 'Out of town wedding ceremony', status: 'Approved', appliedOn: '2026-04-20' },
+      { id: 'LV010', employeeId: 'EMP0014', employeeName: 'Leo Green', department: 'Marine Services', leaveType: 'Sick', startDate: '2026-06-02', endDate: '2026-06-03', days: 2, reason: 'High fever recovery', status: 'Approved', appliedOn: '2026-06-01' },
+    ];
+
+    const INITIAL_DEVICES = [
+      { id: 'NFC-ENT-01', name: 'Main Entrance Lobby', location: 'HQ Block A', department: 'Admin', status: 'Online', lastSync: '2026-06-11T16:42:15Z', shift: 'Day Shift 08:00-17:00' },
+      { id: 'NFC-HSE-02', name: 'Safety HQ Portal', location: 'Workshop East', department: 'HSE', status: 'Online', lastSync: '2026-06-11T16:39:48Z', shift: 'Day Shift 08:00-17:00' },
+      { id: 'NFC-IT-03', name: 'IT Server Room Auth', location: 'Server Facility', department: 'IT', status: 'Online', lastSync: '2026-06-11T16:35:10Z', shift: 'Day Shift 08:00-17:00' },
+      { id: 'NFC-FIN-04', name: 'Finance Security Gate', location: 'HQ Block B Floor 2', department: 'Finance', status: 'Online', lastSync: '2026-06-11T16:43:22Z', shift: 'Day Shift 08:00-17:00' },
+      { id: 'NFC-OPS-05', name: 'Ops Control Room Door', location: 'Control Block', department: 'Operations', status: 'Online', lastSync: '2026-06-11T16:41:00Z', shift: 'Day Shift 08:00-17:00' },
+      { id: 'NFC-ENG-06', name: 'Engineering Lab Gate', location: 'R&D Block C', department: 'Engineering', status: 'Sync Delay', lastSync: '2026-06-11T15:58:30Z', shift: 'Day Shift 08:00-17:00' },
+      { id: 'NFC-MAR-07', name: 'Marine Dock Gate Reader', location: 'Docking Berth 4', department: 'Marine Services', status: 'Offline', lastSync: '2026-06-11T12:14:02Z', shift: 'Day Shift 08:00-17:00' },
+      { id: 'NFC-ADM-08', name: 'Reception Desk Deskpad', location: 'HQ Main Lobby', department: 'Admin', status: 'Online', lastSync: '2026-06-11T16:42:01Z', shift: 'Day Shift 08:00-17:00' },
+    ];
+
+    const INITIAL_NOTIFICATIONS = [
+      { id: 'NT001', title: 'New HSE Safety Guidelines for Q3', preview: 'All personnel are required to review the updated dock safety measures...', type: 'Announcement', audience: 'All Employees', status: 'Sent', time: '2026-06-11T09:00:00Z', sentBy: 'Alice Williams (HSE)' },
+      { id: 'NT002', title: 'NFC Reader Offline Alert', preview: 'Reader NFC-MAR-07 at Docking Berth 4 is offline. IT team dispatched.', type: 'Alert', audience: 'IT Department', status: 'Sent', time: '2026-06-11T12:15:00Z', sentBy: 'System' },
+      { id: 'NT003', title: 'Submit Monthly Leave Schedules', preview: 'Reminder to all leads to submit July leave plans by this Friday 17:00...', type: 'Reminder', audience: 'All Managers', status: 'Scheduled', time: '2026-06-12T08:00:00Z', sentBy: 'Jack White (HR)' },
+      { id: 'NT004', title: 'Emergency Drill Announcement', preview: 'The annual site-wide fire and maritime drill is scheduled for June 15.', type: 'Announcement', audience: 'All Employees', status: 'Scheduled', time: '2026-06-13T09:00:00Z', sentBy: 'System' },
+      { id: 'NT005', title: 'Weekly Server Room Maintenance', preview: 'Access to Server Facility NFC reader will be restricted on Saturday...', type: 'Announcement', audience: 'IT Department', status: 'Sent', time: '2026-06-10T14:00:00Z', sentBy: 'John Doe (IT)' },
+      { id: 'NT006', title: 'Pending Leave Request Reminder', preview: 'Manager action required: 3 leave requests are awaiting evaluation.', type: 'Reminder', audience: 'Admin & Operations', status: 'Sent', time: '2026-06-11T08:30:00Z', sentBy: 'System' },
+      { id: 'NT007', title: 'Database Sync Delay Alert', preview: 'Replication delay exceeds 15 minutes between local nodes and HQ database.', type: 'Alert', audience: 'IT Department', status: 'Failed', time: '2026-06-11T14:45:00Z', sentBy: 'System' },
+      { id: 'NT008', title: 'Leave Approved: Olivia Martin', preview: 'Annual leave request for Olivia Martin has been approved by Operations Manager.', type: 'Leave', audience: 'Operations Department', status: 'Sent', time: '2026-06-10T16:10:00Z', sentBy: 'System' },
+      { id: 'NT009', title: 'Bakeo Attendance App V2.4 Launch', preview: 'New feature: manual NFC syncing override and real-time dashboard triggers.', type: 'Announcement', audience: 'All Employees', status: 'Sent', time: '2026-06-09T10:00:00Z', sentBy: 'System' },
+      { id: 'NT010', title: 'Temperature Alert: Engine Room', preview: 'High temperature alert logged on NFC-ENG-06. Checked and stabilized.', type: 'Alert', audience: 'IT Department', status: 'Sent', time: '2026-06-11T16:02:00Z', sentBy: 'System' },
+    ];
+
+    const DEVICE_LOGS = [
+      { time: '16:43:22', device: 'NFC-FIN-04', employee: 'Jane Smith', event: 'NFC Tap Check-In (Success)', type: 'info' },
+      { time: '16:42:15', device: 'NFC-ENT-01', employee: 'John Doe', event: 'NFC Tap Check-In (Success)', type: 'info' },
+      { time: '16:42:01', device: 'NFC-ADM-08', employee: 'Jack White', event: 'NFC Tap Check-In (Success)', type: 'info' },
+      { time: '16:02:00', device: 'NFC-ENG-06', employee: 'System Alert', event: 'High temperature warning logged (38°C)', type: 'warning' },
+      { time: '15:58:30', device: 'NFC-ENG-06', employee: 'System Sync', event: 'Database replication success', type: 'info' },
+      { time: '12:14:02', device: 'NFC-MAR-07', employee: 'System Connection', event: 'Device offline warning - heartbeat missed', type: 'error' },
+      { time: '10:34:12', device: 'NFC-OPS-05', employee: 'Henry Taylor', event: 'NFC Tap Clock-In (Late Entry)', type: 'warning' },
+    ];
+
+    // Main App Component
+    function App() {
+      const [currentPage, setCurrentPage] = useState('dashboard');
+      const [employees, setEmployees] = useState(INITIAL_EMPLOYEES);
+      const [attendanceRecords, setAttendanceRecords] = useState(() => generateHistoricalData(INITIAL_EMPLOYEES));
+      const [leaveRequests, setLeaveRequests] = useState(INITIAL_LEAVES);
+      const [nfcDevices, setNfcDevices] = useState(INITIAL_DEVICES);
+      const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
+      const [deviceLogs, setDeviceLogs] = useState(DEVICE_LOGS);
+
+      // Modal / Overlay States
+      const [selectedEmployeeId, setSelectedEmployeeId] = useState('EMP0001');
+      const [selectedDeptName, setSelectedDeptName] = useState('Operations');
+      const [nfcModalOpen, setNfcModalOpen] = useState(false);
+      const [toast, setToast] = useState(null);
+      const [lastSyncTime, setLastSyncTime] = useState('16:43:22');
+
+      // Tap simulation states
+      const [simEmpId, setSimEmpId] = useState('EMP0013'); // default to pending tap
+      const [simDeviceId, setSimDeviceId] = useState('NFC-ENT-01');
+
+      // Global date picker state (defaulting to June 11, 2026)
+      const [selectedDate, setSelectedDate] = useState('2026-06-11');
+
+      // Trigger Toast notification
+      const showToast = (message, type = 'success') => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 4000);
+      };
+
+      // NFC Tap Simulation Logic
+      const handleSimulateNfcTap = (empId = simEmpId, devId = simDeviceId) => {
+        const emp = employees.find(e => e.id === empId);
+        const dev = nfcDevices.find(d => d.id === devId);
+
+        if (!emp || !dev) {
+          showToast('Invalid employee or device selected.', 'error');
+          return;
+        }
+
+        if (dev.status === 'Offline') {
+          showToast(`Cannot tap: Device ${dev.id} at ${dev.location} is Offline.`, 'error');
+          return;
+        }
+
+        const now = new Date();
+        const timeStr = now.toTimeString().split(' ')[0]; // HH:MM:SS
+        const dateStr = selectedDate; // Simulate for the selected date context
+
+        // Find if they already have a record for the selected date
+        const existingRecordIndex = attendanceRecords.findIndex(r => r.date === dateStr && r.employeeId === emp.id);
+
+        let updatedRecords = [...attendanceRecords];
+        let updatedEmployees = [...employees];
+        let newStatus = 'Checked In';
+        let actionMsg = '';
+
+        if (existingRecordIndex >= 0) {
+          const rec = attendanceRecords[existingRecordIndex];
+          if (rec.status === 'Checked In' || rec.status === 'Late') {
+            // Check out
+            const inParts = rec.clockIn.split(':').map(Number);
+            const outParts = timeStr.split(':').map(Number);
+            const inDecimal = inParts[0] + inParts[1] / 60;
+            const outDecimal = outParts[0] + outParts[1] / 60;
+            const hours = parseFloat(Math.max(0.1, outDecimal - inDecimal).toFixed(1));
+
+            updatedRecords[existingRecordIndex] = {
+              ...rec,
+              clockOut: timeStr,
+              hours: hours,
+              status: 'Checked Out'
+            };
+            newStatus = 'Checked Out';
+            actionMsg = `Checked Out (${hours} hrs)`;
+          } else {
+            // Re-check in
+            updatedRecords[existingRecordIndex] = {
+              ...rec,
+              clockIn: timeStr,
+              clockOut: null,
+              hours: 0,
+              status: 'Checked In'
+            };
+            newStatus = 'Checked In';
+            actionMsg = 'Checked In';
+          }
+        } else {
+          // New check in
+          const shiftStartHour = 8;
+          const currentHour = now.getHours();
+          const currentMin = now.getMinutes();
+          const isLate = currentHour > shiftStartHour || (currentHour === shiftStartHour && currentMin > 0);
+          newStatus = isLate ? 'Late' : 'Checked In';
+
+          updatedRecords.push({
+            id: `REC-${dateStr}-${emp.id}`,
+            employeeId: emp.id,
+            employeeName: emp.name,
+            department: emp.department,
+            date: dateStr,
+            clockIn: timeStr,
+            clockOut: null,
+            hours: 0,
+            status: newStatus
+          });
+          actionMsg = newStatus === 'Late' ? 'Checked In (Late)' : 'Checked In';
+        }
+
+        // Update employee current status if today's date
+        if (dateStr === '2026-06-11') {
+          updatedEmployees = employees.map(e => {
+            if (e.id === emp.id) {
+              return { ...e, status: newStatus };
+            }
+            return e;
+          });
+          setEmployees(updatedEmployees);
+        }
+
+        // Update records state
+        setAttendanceRecords(updatedRecords);
+
+        // Add to device logs
+        const logEntry = {
+          time: timeStr.slice(0, 5),
+          device: dev.id,
+          employee: emp.name,
+          event: `NFC Tap - ${actionMsg} (Success)`,
+          type: newStatus === 'Late' ? 'warning' : 'info'
+        };
+        setDeviceLogs([logEntry, ...deviceLogs]);
+
+        // Add notification
+        const newNotif = {
+          id: `NT${Date.now()}`,
+          title: `NFC Tap: ${emp.name}`,
+          preview: `${emp.name} tapped NFC card at ${dev.name} (${dev.location})`,
+          type: 'Leave',
+          audience: `${emp.department} Department`,
+          status: 'Sent',
+          time: new Date().toISOString(),
+          sentBy: 'System'
+        };
+        setNotifications([newNotif, ...notifications]);
+
+        // Update last sync time on device & sidebar
+        setLastSyncTime(timeStr);
+        setNfcDevices(nfcDevices.map(d => {
+          if (d.id === dev.id) {
+            return { ...d, lastSync: new Date().toISOString(), status: 'Online' };
+          }
+          return d;
+        }));
+
+        setNfcModalOpen(false);
+        showToast(`${emp.name} successfully swiped at ${dev.name}. Status: ${newStatus}`);
+      };
+
+      // Helper calculations for current stats based on selected date
+      const statsForSelectedDate = useMemo(() => {
+        const dayRecords = attendanceRecords.filter(r => r.date === selectedDate);
+        const totalActive = employees.filter(e => e.active).length;
+
+        let present = 0;
+        let onTime = 0;
+        let late = 0;
+        let absent = 0;
+        let pending = 0;
+
+        employees.forEach(emp => {
+          if (!emp.active) return;
+          const rec = dayRecords.find(r => r.employeeId === emp.id);
+          if (rec) {
+            if (rec.status === 'Checked In' || rec.status === 'Checked Out' || rec.status === 'Working') {
+              present++;
+              onTime++;
+            } else if (rec.status === 'Late') {
+              present++;
+              late++;
+            } else if (rec.status === 'Absent') {
+              absent++;
+            } else if (rec.status === 'On Leave') {
+              // counted as leave, doesn't count against absent for attendance rate calculations
+            }
+          } else {
+            pending++;
+          }
+        });
+
+        // Absents default if no record
+        const totalReported = present + absent;
+        const rate = totalActive > 0 ? Math.round((present / totalActive) * 100) : 0;
+
+        return { present, onTime, late, absent, pending, totalActive, rate };
+      }, [attendanceRecords, employees, selectedDate]);
+
+      return (
+        <div class="flex h-full w-full overflow-hidden bg-slate-100">
+
+          {/* TOAST SYSTEM */}
+          {toast && (
+            <div className={`fixed top-4 right-4 z-50 flex items-center p-4 rounded-lg shadow-xl border animate-slide-in ${toast.type === 'success'
+              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+              : 'bg-red-50 text-red-800 border-red-200'
+              }`}>
+              <Icon name={toast.type === 'success' ? 'check' : 'alertCircle'} className="w-5 h-5 mr-3 shrink-0" />
+              <div className="text-sm font-semibold">{toast.message}</div>
+              <button onClick={() => setToast(null)} className="ml-4 text-gray-400 hover:text-gray-600">
+                <Icon name="x" className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {/* PERSISTENT SIDEBAR NAVBAR */}
+          <aside className="w-64 bg-navy-800 text-slate-300 flex flex-col justify-between shrink-0 border-r border-navy-900 shadow-2xl z-20">
+            <div>
+              {/* Brand Header */}
+              <div className="p-6 border-b border-navy-950 flex items-center space-x-3 bg-navy-900">
+                <div className="bg-accent-orange p-2 rounded-xl text-white shadow-lg shadow-orange-500/20">
+                  <Icon name="flame" className="w-6 h-6 stroke-[2.5]" />
+                </div>
+                <div>
+                  <h1 className="font-extrabold text-xl text-white tracking-wider flex items-center">
+                    BAKEO <span className="text-[10px] bg-slate-700 text-slate-200 px-1 rounded ml-1.5 font-normal tracking-normal">v2.4</span>
+                  </h1>
+                  <p className="text-[10px] text-slate-400 font-semibold tracking-widest uppercase">powered by ASSETRA</p>
+                </div>
+              </div>
+
+              {/* Navigation Links */}
+              <nav className="p-4 space-y-1">
+                {[
+                  { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
+                  { id: 'staff', label: 'Staff Management', icon: 'staff' },
+                  { id: 'attendance', label: 'Attendance Feed', icon: 'attendance' },
+                  { id: 'reports', label: 'Reports Generator', icon: 'reports' },
+                  { id: 'leave', label: 'Leave Requests', icon: 'leave' },
+                  { id: 'departments', label: 'Departments', icon: 'departments' },
+                  { id: 'devices', label: 'NFC Devices', icon: 'devices' },
+                  { id: 'notifications', label: 'System Alerts', icon: 'notifications' },
+                ].map((item) => {
+                  const isActive = currentPage === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setCurrentPage(item.id)}
+                      className={`w-full flex items-center px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-200 ${isActive
+                        ? 'bg-navy-900 text-white border-l-4 border-accent-orange shadow-inner'
+                        : 'hover:bg-navy-700/50 hover:text-white'
+                        }`}
+                    >
+                      <Icon name={item.icon} className={`mr-3.5 w-5 h-5 ${isActive ? 'text-accent-orange' : 'text-slate-400'}`} />
+                      {item.label}
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+
+            {/* Sidebar Bottom Sync Indicators */}
+            <div className="p-4 bg-navy-900 border-t border-navy-950 space-y-3">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-400">NFC Network Status</span>
+                <span className="flex items-center text-emerald-400 font-bold">
+                  <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full mr-1.5 status-pulse"></span>
+                  ONLINE
+                </span>
+              </div>
+              <div className="text-[11px] text-slate-400 flex items-center justify-between">
+                <span>Last NFC Hub Sync:</span>
+                <span className="font-mono text-slate-200">{lastSyncTime}</span>
+              </div>
+              <button
+                onClick={() => {
+                  setLastSyncTime(new Date().toTimeString().split(' ')[0]);
+                  showToast("NFC devices sync forced. All reader state hashes match local store.");
+                }}
+                className="w-full flex items-center justify-center py-2 bg-navy-800 hover:bg-navy-700 text-white text-xs font-bold rounded-lg border border-navy-750 transition duration-150 shadow"
+              >
+                <Icon name="refresh" className="w-3.5 h-3.5 mr-2" />
+                Trigger Hardware Sync
+              </button>
+            </div>
+          </aside>
+
+          {/* MAIN CONTAINER PAGE AREA */}
+          <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+
+            {/* TOP BAR / CONTROL HEADER */}
+            <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0 shadow-sm z-10">
+              <div className="flex items-center space-x-4">
+                <span className="font-bold text-lg text-slate-800 tracking-tight capitalize">{currentPage.replace('-', ' ')} Overview</span>
+                <span className="text-slate-300">|</span>
+                <div className="flex items-center bg-slate-100 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-600 font-semibold shadow-inner">
+                  <Icon name="leave" className="w-4 h-4 mr-2 text-slate-400" />
+                  System Date: June 11, 2026
+                </div>
+              </div>
+
+              {/* Action shortcuts */}
+              <div className="flex items-center space-x-3">
+                {/* Date Picker (Global scope for filterable stats) */}
+                <div className="flex items-center space-x-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Date Context:</label>
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => {
+                      setSelectedDate(e.target.value);
+                      showToast(`App shifted to date filter context: ${e.target.value}`, 'info');
+                    }}
+                    min="2026-05-12"
+                    max="2026-06-15"
+                    className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-accent-orange text-slate-700 shadow-sm"
+                  />
+                </div>
+
+                {/* Simulation Tap button */}
+                <button
+                  onClick={() => setNfcModalOpen(true)}
+                  className="bg-accent-orange hover:bg-orange-600 text-white text-xs font-bold px-4 py-2 rounded-lg shadow-md hover:shadow-orange-500/20 transition duration-150 flex items-center"
+                >
+                  <span className="w-2.5 h-2.5 bg-white rounded-full mr-2 animate-ping shrink-0"></span>
+                  Simulate NFC Swiping
+                </button>
+              </div>
+            </header>
+
+            {/* SCREEN CONTENT DISPLAY */}
+            <div className="flex-1 overflow-y-auto p-8">
+
+              {/* PAGE 1: DASHBOARD */}
+              {currentPage === 'dashboard' && (
+                <div className="space-y-8 animate-slide-in">
+
+                  {/* Stats Ribbon */}
+                  <div className="grid grid-cols-4 gap-6">
+                    {[
+                      { label: 'Present Today', val: statsForSelectedDate.present, desc: `${Math.round((statsForSelectedDate.present / statsForSelectedDate.totalActive) * 100 || 0)}% of active staff`, color: 'border-l-4 border-green-500 bg-white' },
+                      { label: 'On Time Arrivals', val: statsForSelectedDate.onTime, desc: `${Math.round((statsForSelectedDate.onTime / statsForSelectedDate.present) * 100 || 0)}% of present`, color: 'border-l-4 border-blue-500 bg-white' },
+                      { label: 'Late Clock-Ins', val: statsForSelectedDate.late, desc: `Flagged check-ins`, color: 'border-l-4 border-amber-500 bg-white' },
+                      { label: 'Absent Count', val: statsForSelectedDate.absent, desc: 'Missed tap records', color: 'border-l-4 border-red-500 bg-white' },
+                    ].map((stat, i) => (
+                      <div key={i} className={`p-6 rounded-xl border border-slate-200 shadow-sm ${stat.color} flex flex-col justify-between h-28`}>
+                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{stat.label}</span>
+                        <div className="flex items-baseline space-x-2">
+                          <span className="text-3xl font-extrabold text-slate-800">{stat.val}</span>
+                          <span className="text-xs text-slate-400 font-semibold">/ {statsForSelectedDate.totalActive}</span>
+                        </div>
+                        <span className="text-xs text-slate-400 font-semibold">{stat.desc}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Main Split Grid */}
+                  <div className="grid grid-cols-12 gap-8">
+
+                    {/* Left: Department donut charts */}
+                    <div className="col-span-8 bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-6">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h2 className="font-extrabold text-slate-800 text-base">Department Attendance Distribution</h2>
+                          <p className="text-xs text-slate-400 font-semibold">Today's metrics and percentages per division</p>
+                        </div>
+                        <span className="text-xs bg-slate-100 text-slate-500 font-bold px-2 py-1 rounded-md">7 Departments</span>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-6">
+                        {DEPARTMENTS.map((dept) => {
+                          const deptStaff = employees.filter(e => e.department === dept && e.active);
+                          const dayRecords = attendanceRecords.filter(r => r.date === selectedDate && r.department === dept);
+
+                          let onTime = 0, late = 0, absent = 0, pending = 0;
+                          deptStaff.forEach(emp => {
+                            const rec = dayRecords.find(r => r.employeeId === emp.id);
+                            if (rec) {
+                              if (rec.status === 'Checked In' || rec.status === 'Checked Out' || rec.status === 'Working') onTime++;
+                              else if (rec.status === 'Late') late++;
+                              else if (rec.status === 'Absent') absent++;
+                            } else {
+                              pending++;
+                            }
+                          });
+
+                          const pieData = [
+                            { name: 'On Time', value: onTime, color: '#10B981' },
+                            { name: 'Late', value: late, color: '#F59E0B' },
+                            { name: 'Absent', value: absent, color: '#EF4444' },
+                            { name: 'Pending Tap', value: pending, color: '#A78BFA' }
+                          ].filter(d => d.value > 0);
+
+                          const presentCount = onTime + late;
+                          const totalCount = deptStaff.length;
+
+                          return (
+                            <div key={dept} className="border border-slate-150 rounded-xl p-4 flex flex-col justify-between bg-slate-50/50 hover:bg-slate-50 transition duration-150">
+                              <div className="flex justify-between items-center mb-2">
+                                <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${DEPT_COLORS[dept].bg}`}>
+                                  {dept}
+                                </span>
+                                <span className="text-xs text-slate-400 font-bold">
+                                  {presentCount}/{totalCount} Staff
+                                </span>
+                              </div>
+
+                              <div className="h-28 flex justify-center items-center relative">
+                                {pieData.length > 0 ? (
+                                  <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                      <Pie
+                                        data={pieData}
+                                        innerRadius={28}
+                                        outerRadius={45}
+                                        paddingAngle={3}
+                                        dataKey="value"
+                                      >
+                                        {pieData.map((entry, index) => (
+                                          <Cell key={`cell-${index}`} fill={entry.color} />
+                                        ))}
+                                      </Pie>
+                                      <Tooltip formatter={(value) => [`${value} staff`, 'Status']} />
+                                    </PieChart>
+                                  </ResponsiveContainer>
+                                ) : (
+                                  <span className="text-[10px] text-slate-400 italic">No attendance data</span>
+                                )}
+                                <div className="absolute text-center">
+                                  <span className="text-xs font-extrabold text-slate-700">
+                                    {totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0}%
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Small Legend */}
+                              <div className="flex flex-wrap gap-x-2 gap-y-1 mt-2 text-[9px] font-semibold text-slate-500 justify-center">
+                                <span className="flex items-center"><span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-1"></span>On Time</span>
+                                <span className="flex items-center"><span className="w-1.5 h-1.5 bg-amber-500 rounded-full mr-1"></span>Late</span>
+                                <span className="flex items-center"><span className="w-1.5 h-1.5 bg-red-500 rounded-full mr-1"></span>Absent</span>
+                                <span className="flex items-center"><span className="w-1.5 h-1.5 bg-purple-500 rounded-full mr-1"></span>Pending</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Right: Live Attendance Feed */}
+                    <div className="col-span-4 bg-white border border-slate-200 rounded-xl shadow-sm p-6 flex flex-col h-[520px]">
+                      <div className="mb-4">
+                        <h2 className="font-extrabold text-slate-800 text-base">Live Activity Feed</h2>
+                        <p className="text-xs text-slate-400 font-semibold">Real-time NFC reader swipes & syncs</p>
+                      </div>
+
+                      <div className="flex-1 overflow-y-auto space-y-3.5 pr-2">
+                        {deviceLogs.map((log, i) => (
+                          <div key={i} className="flex space-x-3 text-xs border-b border-slate-100 pb-3 last:border-0 last:pb-0">
+                            <div className="shrink-0 flex flex-col items-center">
+                              <span className="font-mono text-slate-400 font-bold bg-slate-100 rounded px-1.5 py-0.5 text-[10px]">{log.time}</span>
+                              <div className={`w-1 flex-1 mt-2 rounded-full ${log.type === 'error' ? 'bg-red-300' : log.type === 'warning' ? 'bg-amber-300' : 'bg-green-300'
+                                }`}></div>
+                            </div>
+                            <div className="flex-1 space-y-0.5">
+                              <div className="flex justify-between">
+                                <span className="font-bold text-slate-700">{log.employee}</span>
+                                <span className="text-[10px] text-slate-400 font-bold uppercase">{log.device}</span>
+                              </div>
+                              <p className="text-slate-500 font-medium">{log.event}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Panels Row: Late Today & On Leave */}
+                  <div className="grid grid-cols-2 gap-8">
+                    {/* Late Today Panel */}
+                    <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                      <div className="flex justify-between items-center mb-4">
+                        <div>
+                          <h3 className="font-extrabold text-slate-800 text-base">Late Arrivals Today</h3>
+                          <p className="text-xs text-slate-400 font-semibold">Employees checking in after 08:00 AM shift start</p>
+                        </div>
+                        <span className="text-xs bg-amber-50 text-amber-700 border border-amber-200 font-bold px-2 py-0.5 rounded-full">
+                          {attendanceRecords.filter(r => r.date === selectedDate && r.status === 'Late').length} Late Today
+                        </span>
+                      </div>
+
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider">
+                              <th className="py-2.5">Employee</th>
+                              <th className="py-2.5">Dept</th>
+                              <th className="py-2.5">Clock In</th>
+                              <th className="py-2.5 text-right">Delay</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {attendanceRecords.filter(r => r.date === selectedDate && r.status === 'Late').map((rec) => {
+                              const emp = employees.find(e => e.id === rec.employeeId);
+
+                              // Calculate delay in minutes
+                              const inParts = rec.clockIn.split(':').map(Number);
+                              const delayMin = (inParts[0] - 8) * 60 + inParts[1];
+
+                              return (
+                                <tr key={rec.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                                  <td className="py-3 font-semibold text-slate-800 flex items-center space-x-2">
+                                    <div className="w-7 h-7 bg-navy-800 text-slate-200 text-[10px] font-bold rounded-full flex items-center justify-center">
+                                      {emp ? emp.name.split(' ').map(n => n[0]).join('') : 'EM'}
+                                    </div>
+                                    <span>{rec.employeeName}</span>
+                                  </td>
+                                  <td className="py-3">
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${DEPT_COLORS[rec.department].bg}`}>
+                                      {rec.department}
+                                    </span>
+                                  </td>
+                                  <td className="py-3 font-mono font-bold text-slate-600">{rec.clockIn.slice(0, 5)}</td>
+                                  <td className="py-3 font-semibold text-red-600 text-right">+{delayMin} mins</td>
+                                </tr>
+                              );
+                            })}
+                            {attendanceRecords.filter(r => r.date === selectedDate && r.status === 'Late').length === 0 && (
+                              <tr>
+                                <td colSpan="4" className="text-center py-6 text-slate-400 italic">No late clock-ins logged today. Excellent punctuality!</td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* On Leave Panel */}
+                    <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                      <div className="flex justify-between items-center mb-4">
+                        <div>
+                          <h3 className="font-extrabold text-slate-800 text-base">On Leave Today</h3>
+                          <p className="text-xs text-slate-400 font-semibold">Staff members currently on authorized leave</p>
+                        </div>
+                        <span className="text-xs bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-full">
+                          {leaveRequests.filter(r => r.status === 'Approved' && new Date(selectedDate) >= new Date(r.startDate) && new Date(selectedDate) <= new Date(r.endDate)).length} Active Leave
+                        </span>
+                      </div>
+
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider">
+                              <th className="py-2.5">Employee</th>
+                              <th className="py-2.5">Dept</th>
+                              <th className="py-2.5">Leave Type</th>
+                              <th className="py-2.5 text-right">Duration</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {leaveRequests.filter(r => r.status === 'Approved' && new Date(selectedDate) >= new Date(r.startDate) && new Date(selectedDate) <= new Date(r.endDate)).map((req) => (
+                              <tr key={req.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                                <td className="py-3 font-semibold text-slate-800 flex items-center space-x-2">
+                                  <div className="w-7 h-7 bg-slate-700 text-slate-200 text-[10px] font-bold rounded-full flex items-center justify-center">
+                                    {req.employeeName.split(' ').map(n => n[0]).join('')}
+                                  </div>
+                                  <span>{req.employeeName}</span>
+                                </td>
+                                <td className="py-3">
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${DEPT_COLORS[req.department].bg}`}>
+                                    {req.department}
+                                  </span>
+                                </td>
+                                <td className="py-3">
+                                  <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${req.leaveType === 'Annual' ? 'bg-green-100 text-green-800 border-green-200' :
+                                    req.leaveType === 'Sick' ? 'bg-orange-100 text-orange-800 border-orange-200' :
+                                      req.leaveType === 'Medical' ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-gray-100 text-gray-800 border-gray-200'
+                                    }`}>
+                                    {req.leaveType}
+                                  </span>
+                                </td>
+                                <td className="py-3 font-semibold text-slate-600 text-right">{req.days} {req.days > 1 ? 'days' : 'day'}</td>
+                              </tr>
+                            ))}
+                            {leaveRequests.filter(r => r.status === 'Approved' && new Date(selectedDate) >= new Date(r.startDate) && new Date(selectedDate) <= new Date(r.endDate)).length === 0 && (
+                              <tr>
+                                <td colSpan="4" className="text-center py-6 text-slate-400 italic">No employees on scheduled leave today.</td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              )}
+
+              {/* PAGE 2: STAFF MANAGEMENT */}
+              {currentPage === 'staff' && (
+                <StaffManagement
+                  employees={employees}
+                  attendanceRecords={attendanceRecords}
+                  leaveRequests={leaveRequests}
+                  selectedEmployeeId={selectedEmployeeId}
+                  setSelectedEmployeeId={setSelectedEmployeeId}
+                  showToast={showToast}
+                />
+              )}
+
+              {/* PAGE 3: ATTENDANCE */}
+              {currentPage === 'attendance' && (
+                <AttendanceFeedPage
+                  employees={employees}
+                  attendanceRecords={attendanceRecords}
+                  setNfcModalOpen={setNfcModalOpen}
+                  selectedDate={selectedDate}
+                />
+              )}
+
+              {/* PAGE 4: REPORTS */}
+              {currentPage === 'reports' && (
+                <ReportsGenerator
+                  employees={employees}
+                  attendanceRecords={attendanceRecords}
+                  leaveRequests={leaveRequests}
+                  showToast={showToast}
+                />
+              )}
+
+              {/* PAGE 5: LEAVE */}
+              {currentPage === 'leave' && (
+                <LeaveRequestsPage
+                  employees={employees}
+                  leaveRequests={leaveRequests}
+                  setLeaveRequests={setLeaveRequests}
+                  showToast={showToast}
+                  selectedDate={selectedDate}
+                />
+              )}
+
+              {/* PAGE 6: DEPARTMENTS */}
+              {currentPage === 'departments' && (
+                <DepartmentsPage
+                  employees={employees}
+                  attendanceRecords={attendanceRecords}
+                  leaveRequests={leaveRequests}
+                  selectedDeptName={selectedDeptName}
+                  setSelectedDeptName={setSelectedDeptName}
+                  selectedDate={selectedDate}
+                />
+              )}
+
+              {/* PAGE 7: DEVICES (NFC) */}
+              {currentPage === 'devices' && (
+                <DevicesNfcPage
+                  nfcDevices={nfcDevices}
+                  setNfcDevices={setNfcDevices}
+                  deviceLogs={deviceLogs}
+                  showToast={showToast}
+                />
+              )}
+
+              {/* PAGE 8: NOTIFICATIONS */}
+              {currentPage === 'notifications' && (
+                <NotificationsPage
+                  notifications={notifications}
+                  setNotifications={setNotifications}
+                  showToast={showToast}
+                />
+              )}
+
+            </div>
+          </main>
+
+          {/* SIMULATION OVERLAY MODAL */}
+          {nfcModalOpen && (
+            <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden animate-slide-in">
+                {/* Header */}
+                <div className="bg-navy-800 p-6 text-white flex justify-between items-center">
+                  <div className="flex items-center space-x-3">
+                    <div className="bg-accent-orange p-2 rounded-lg text-white">
+                      <Icon name="devices" className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-base">NFC Device Simulator</h3>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">ASSETRA TAP CONTROLLER</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setNfcModalOpen(false)} className="text-slate-400 hover:text-white transition">
+                    <Icon name="x" className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Form Body */}
+                <div className="p-6 space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Select Employee</label>
+                    <select
+                      value={simEmpId}
+                      onChange={(e) => setSimEmpId(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-accent-orange text-slate-700 shadow-sm"
+                    >
+                      {employees.map(e => (
+                        <option key={e.id} value={e.id}>
+                          [{e.id}] {e.name} ({e.department} - {e.status})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Select Target Reader</label>
+                    <select
+                      value={simDeviceId}
+                      onChange={(e) => setSimDeviceId(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-accent-orange text-slate-700 shadow-sm"
+                    >
+                      {nfcDevices.map(d => (
+                        <option key={d.id} value={d.id} disabled={d.status === 'Offline'}>
+                          [{d.id}] {d.name} ({d.status}) {d.status === 'Offline' ? '(OFFLINE)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-150 text-[11px] text-slate-500 space-y-2">
+                    <p className="flex justify-between">
+                      <span className="font-bold">Estimated Action:</span>
+                      <span className="font-semibold text-slate-700 uppercase">
+                        {(() => {
+                          const emp = employees.find(e => e.id === simEmpId);
+                          if (!emp) return 'N/A';
+                          return emp.status === 'Checked In' || emp.status === 'Late' ? 'CLOCK OUT' : 'CLOCK IN';
+                        })()}
+                      </span>
+                    </p>
+                    <p className="flex justify-between">
+                      <span className="font-bold">Transmission Protocol:</span>
+                      <span className="font-semibold font-mono text-slate-700">Mifare DESFire EV2 (NFC)</span>
+                    </p>
+                  </div>
+                </div>
+
+                {/* Footer Buttons */}
+                <div className="bg-slate-50 p-6 border-t border-slate-100 flex space-x-3 justify-end">
+                  <button
+                    onClick={() => setNfcModalOpen(false)}
+                    className="px-4 py-2 border border-slate-200 text-slate-600 font-bold rounded-lg text-xs hover:bg-slate-100 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => handleSimulateNfcTap()}
+                    className="px-5 py-2 bg-accent-orange hover:bg-orange-600 text-white font-bold rounded-lg text-xs shadow-md transition"
+                  >
+                    Simulate Swipe
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+        </div>
+      );
+    }
+
+    // ==========================================
+    // PAGE 2: STAFF MANAGEMENT COMPONENT
+    // ==========================================
+    function StaffManagement({ employees, attendanceRecords, leaveRequests, selectedEmployeeId, setSelectedEmployeeId, showToast }) {
+      const [tab, setTab] = useState('list'); // 'list' or 'report'
+
+      // Filter states
+      const [searchQuery, setSearchQuery] = useState('');
+      const [deptFilter, setDeptFilter] = useState('');
+      const [statusFilter, setStatusFilter] = useState('');
+      const [shiftFilter, setShiftFilter] = useState('');
+
+      // Pagination
+      const [page, setPage] = useState(1);
+      const [rowsPerPage, setRowsPerPage] = useState(10);
+
+      // Calculations
+      const activeCount = employees.filter(e => e.active).length;
+      const inactiveCount = employees.filter(e => !e.active).length;
+      const leaveTodayCount = leaveRequests.filter(l => l.status === 'Approved' && new Date('2026-06-11') >= new Date(l.startDate) && new Date('2026-06-11') <= new Date(l.endDate)).length;
+
+      // Filtered Employees
+      const filteredEmployees = useMemo(() => {
+        return employees.filter(emp => {
+          const matchesSearch = emp.name.toLowerCase().includes(searchQuery.toLowerCase()) || emp.email.toLowerCase().includes(searchQuery.toLowerCase());
+          const matchesDept = deptFilter ? emp.department === deptFilter : true;
+          const matchesStatus = statusFilter ? emp.status === statusFilter : true;
+          const matchesShift = shiftFilter ? emp.shift === shiftFilter : true;
+          return matchesSearch && matchesDept && matchesStatus && matchesShift;
+        });
+      }, [employees, searchQuery, deptFilter, statusFilter, shiftFilter]);
+
+      // Paginated
+      const paginatedEmployees = useMemo(() => {
+        const start = (page - 1) * rowsPerPage;
+        return filteredEmployees.slice(start, start + rowsPerPage);
+      }, [filteredEmployees, page, rowsPerPage]);
+
+      const totalPages = Math.ceil(filteredEmployees.length / rowsPerPage) || 1;
+
+      // Report Specific Calculations
+      const currentEmployee = useMemo(() => {
+        return employees.find(e => e.id === selectedEmployeeId) || employees[0];
+      }, [employees, selectedEmployeeId]);
+
+      const empStats = useMemo(() => {
+        if (!currentEmployee) return { present: 0, late: 0, leave: 0, absent: 0, working: 0, rate: 0 };
+        const empRecs = attendanceRecords.filter(r => r.employeeId === currentEmployee.id);
+
+        let present = 0, late = 0, leave = 0, absent = 0;
+        empRecs.forEach(r => {
+          if (r.status === 'Checked Out' || r.status === 'Checked In' || r.status === 'Working') present++;
+          else if (r.status === 'Late') {
+            present++;
+            late++;
+          } else if (r.status === 'Absent') absent++;
+          else if (r.status === 'On Leave') leave++;
+        });
+
+        const total = present + absent;
+        const rate = total > 0 ? Math.round((present / total) * 100) : 0;
+        return { present, late, leave, absent, working: total, rate };
+      }, [attendanceRecords, currentEmployee]);
+
+      // 12 Months Attendance Rate Trend (line chart)
+      const trendData = useMemo(() => {
+        const months = ['Jul 25', 'Aug 25', 'Sep 25', 'Oct 25', 'Nov 25', 'Dec 25', 'Jan 26', 'Feb 26', 'Mar 26', 'Apr 26', 'May 26', 'Jun 26'];
+        const seedVal = currentEmployee ? currentEmployee.name.length * 2 : 80;
+        const rand = createRandom(seedVal);
+        return months.map(m => {
+          // generate attendance rate fluctuating near employee average
+          const avg = currentEmployee ? currentEmployee.attendanceRate : 90;
+          const fluctuation = Math.floor(rand() * 12) - 6;
+          return { name: m, rate: Math.min(100, Math.max(60, avg + fluctuation)) };
+        });
+      }, [currentEmployee]);
+
+      // Donut Chart Data
+      const breakdownData = [
+        { name: 'On Time', value: empStats.present - empStats.late, color: '#10B981' },
+        { name: 'Late', value: empStats.late, color: '#F59E0B' },
+        { name: 'Leave Days', value: empStats.leave, color: '#3B82F6' },
+        { name: 'Absent', value: empStats.absent, color: '#EF4444' }
+      ].filter(d => d.value > 0);
+
+      // Monthly Summaries Table
+      const monthlySummaryTable = useMemo(() => {
+        const months = ['May 2026', 'June 2026'];
+        const seedVal = currentEmployee ? currentEmployee.name.length * 3 : 50;
+        const rand = createRandom(seedVal);
+
+        return months.map((m, i) => {
+          const days = i === 0 ? 21 : 9; // May working days vs June so far
+          let l = Math.floor(rand() * 2);
+          let lv = Math.floor(rand() * 2);
+          let a = rand() < 0.1 ? 1 : 0;
+          let p = days - l - lv - a;
+          const rate = Math.round((p / (days - lv)) * 100);
+          return { name: m, onTime: p, late: l, leave: lv, absent: a, working: days, rate };
+        });
+      }, [currentEmployee]);
+
+      return (
+        <div className="space-y-8 animate-slide-in">
+          {/* Top Tabs Navigator */}
+          <div className="flex border-b border-slate-200">
+            <button
+              onClick={() => setTab('list')}
+              className={`px-6 py-3 font-bold text-sm border-b-2 transition duration-150 ${tab === 'list'
+                ? 'border-accent-orange text-accent-orange'
+                : 'border-transparent text-slate-500 hover:text-slate-700'
+                }`}
+            >
+              Employee Directory
+            </button>
+            <button
+              onClick={() => setTab('report')}
+              className={`px-6 py-3 font-bold text-sm border-b-2 transition duration-150 ${tab === 'report'
+                ? 'border-accent-orange text-accent-orange'
+                : 'border-transparent text-slate-500 hover:text-slate-700'
+                }`}
+            >
+              Employee Profile & Report
+            </button>
+          </div>
+
+          {/* TAB 1: EMPLOYEE DIRECTORY */}
+          {tab === 'list' && (
+            <div className="space-y-6">
+              {/* Summary Cards */}
+              <div className="grid grid-cols-4 gap-6">
+                {[
+                  { label: 'Total Enrolled', val: employees.length, sub: 'Registered NFC profiles', color: 'border-slate-200' },
+                  { label: 'Active Personnel', val: activeCount, sub: 'Currently eligible for shifts', color: 'border-emerald-200 bg-emerald-50/10' },
+                  { label: 'On Leave Today', val: leaveTodayCount, sub: 'Excused from duties', color: 'border-blue-200 bg-blue-50/10' },
+                  { label: 'Inactive/Suspended', val: inactiveCount, sub: 'Missing NFC assignments', color: 'border-red-200 bg-red-50/10' },
+                ].map((c, i) => (
+                  <div key={i} className={`p-5 rounded-xl border shadow-sm bg-white ${c.color} flex flex-col justify-between h-24`}>
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{c.label}</span>
+                    <span className="text-2xl font-extrabold text-slate-800">{c.val}</span>
+                    <span className="text-[10px] text-slate-400 font-semibold">{c.sub}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Filter Row */}
+              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-wrap gap-4 items-center justify-between">
+                <div className="flex flex-wrap gap-4 items-center flex-1 max-w-4xl">
+                  {/* Search */}
+                  <div className="relative w-64">
+                    <Icon name="search" className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                    <input
+                      type="text"
+                      placeholder="Search name, ID or email..."
+                      value={searchQuery}
+                      onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+                      className="bg-slate-50 border border-slate-200 rounded-lg pl-10 pr-4 py-2 w-full text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-accent-orange text-slate-700 shadow-sm"
+                    />
+                  </div>
+
+                  {/* Dept filter */}
+                  <select
+                    value={deptFilter}
+                    onChange={(e) => { setDeptFilter(e.target.value); setPage(1); }}
+                    className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-accent-orange text-slate-600 shadow-sm"
+                  >
+                    <option value="">All Departments</option>
+                    {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+
+                  {/* Status filter */}
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+                    className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-accent-orange text-slate-600 shadow-sm"
+                  >
+                    <option value="">All Statuses</option>
+                    {['Checked In', 'Checked Out', 'Late', 'NFC Pending', 'Absent'].map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    setDeptFilter('');
+                    setStatusFilter('');
+                    setShiftFilter('');
+                    setPage(1);
+                  }}
+                  className="text-xs text-slate-500 hover:text-slate-800 font-bold flex items-center transition"
+                >
+                  <Icon name="refresh" className="w-3.5 h-3.5 mr-1" />
+                  Clear Filters
+                </button>
+              </div>
+
+              {/* Table Card */}
+              <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50/75 border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider">
+                      <th className="p-4">Employee</th>
+                      <th className="p-4">Department</th>
+                      <th className="p-4">Position</th>
+                      <th className="p-4">NFC Token ID</th>
+                      <th className="p-4">Attendance Rate</th>
+                      <th className="p-4">Current Status</th>
+                      <th className="p-4">Shift Type</th>
+                      <th className="p-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedEmployees.map((emp) => (
+                      <tr key={emp.id} className="border-b border-slate-150 hover:bg-slate-50 transition duration-100">
+                        <td className="p-4 flex items-center space-x-3">
+                          <div className="w-8 h-8 bg-navy-800 text-slate-200 text-xs font-bold rounded-full flex items-center justify-center shadow-inner">
+                            {emp.name.split(' ').map(n => n[0]).join('')}
+                          </div>
+                          <div>
+                            <span className="font-bold text-slate-800 block">{emp.name}</span>
+                            <span className="text-[10px] text-slate-400 font-semibold block">{emp.email}</span>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${DEPT_COLORS[emp.department].bg}`}>
+                            {emp.department}
+                          </span>
+                        </td>
+                        <td className="p-4 text-slate-600 font-semibold">{emp.position}</td>
+                        <td className="p-4 text-slate-500 font-mono font-bold">{emp.nfcId}</td>
+                        <td className="p-4">
+                          <div className="w-full max-w-[100px] flex items-center space-x-2">
+                            <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden border">
+                              <div
+                                className={`h-full rounded-full ${emp.attendanceRate >= 92 ? 'bg-green-500' : emp.attendanceRate >= 85 ? 'bg-amber-500' : 'bg-red-500'
+                                  }`}
+                                style={{ width: `${emp.attendanceRate}%` }}
+                              ></div>
+                            </div>
+                            <span className="font-extrabold text-[10px] text-slate-600">{emp.attendanceRate}%</span>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${STATUS_COLORS[emp.status].bg}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full mr-1 ${STATUS_COLORS[emp.status].dot}`}></span>
+                            {emp.status}
+                          </span>
+                        </td>
+                        <td className="p-4 text-slate-500 font-medium">{emp.shift}</td>
+                        <td className="p-4 text-right">
+                          <button
+                            onClick={() => {
+                              setSelectedEmployeeId(emp.id);
+                              setTab('report');
+                            }}
+                            className="bg-navy-800 hover:bg-navy-700 text-white font-bold px-3 py-1.5 rounded-lg text-[10px] shadow transition"
+                          >
+                            View Report
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {paginatedEmployees.length === 0 && (
+                      <tr>
+                        <td colSpan="8" className="text-center py-8 text-slate-400 italic">No employees found matching standard search filters.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+
+                {/* Pagination footer */}
+                <div className="bg-slate-50 border-t border-slate-200 px-6 py-4 flex items-center justify-between">
+                  <div className="flex items-center space-x-2 text-xs font-semibold text-slate-500">
+                    <span>Show:</span>
+                    <select
+                      value={rowsPerPage}
+                      onChange={(e) => { setRowsPerPage(Number(e.target.value)); setPage(1); }}
+                      className="border border-slate-250 bg-white rounded px-2 py-1 focus:outline-none"
+                    >
+                      <option value="5">5 rows</option>
+                      <option value="10">10 rows</option>
+                      <option value="20">20 rows</option>
+                    </select>
+                    <span>showing {(page - 1) * rowsPerPage + 1} to {Math.min(filteredEmployees.length, page * rowsPerPage)} of {filteredEmployees.length} employees</span>
+                  </div>
+
+                  <div className="flex items-center space-x-1.5">
+                    <button
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                      className="p-1.5 border border-slate-200 bg-white rounded-lg hover:bg-slate-100 disabled:opacity-50 transition"
+                    >
+                      <Icon name="chevronLeft" className="w-4 h-4 text-slate-600" />
+                    </button>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                      <button
+                        key={p}
+                        onClick={() => setPage(p)}
+                        className={`w-7 h-7 text-xs font-bold rounded-lg border transition ${page === p
+                          ? 'bg-navy-800 border-navy-800 text-white shadow'
+                          : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600'
+                          }`}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                      disabled={page === totalPages}
+                      className="p-1.5 border border-slate-200 bg-white rounded-lg hover:bg-slate-100 disabled:opacity-50 transition"
+                    >
+                      <Icon name="chevronRight" className="w-4 h-4 text-slate-600" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: EMPLOYEE REPORT PROFILE */}
+          {tab === 'report' && (
+            <div className="space-y-6">
+
+              {/* Employee Selection dropdown */}
+              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <label className="text-xs font-extrabold text-slate-500 uppercase tracking-wider">Select Employee Profile:</label>
+                  <select
+                    value={selectedEmployeeId}
+                    onChange={(e) => setSelectedEmployeeId(e.target.value)}
+                    className="bg-slate-50 border border-slate-250 rounded-lg px-3 py-1.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-accent-orange text-slate-700 shadow-sm"
+                  >
+                    {employees.map(e => <option key={e.id} value={e.id}>[{e.id}] {e.name} ({e.department})</option>)}
+                  </select>
+                </div>
+                <button
+                  onClick={() => { showToast(`PDF Export initialized for ${currentEmployee.name}. Report queued.`) }}
+                  className="border border-slate-250 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold px-3.5 py-1.5 rounded-lg flex items-center shadow-sm transition"
+                >
+                  <Icon name="download" className="w-4 h-4 mr-2 text-slate-500" />
+                  Export PDF dossier
+                </button>
+              </div>
+
+              {/* Profile Header Card */}
+              <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex items-center justify-between">
+                <div className="flex items-center space-x-5">
+                  <div className="w-16 h-16 bg-navy-800 text-slate-200 text-2xl font-extrabold rounded-2xl flex items-center justify-center shadow-md">
+                    {currentEmployee.name.split(' ').map(n => n[0]).join('')}
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-3">
+                      <h2 className="text-xl font-extrabold text-slate-800">{currentEmployee.name}</h2>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${STATUS_COLORS[currentEmployee.status].bg}`}>
+                        {currentEmployee.status}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400 font-semibold flex items-center space-x-1.5">
+                      <span className="font-bold text-slate-600">{currentEmployee.position}</span>
+                      <span>•</span>
+                      <span className={`px-1.5 py-0.5 rounded ${DEPT_COLORS[currentEmployee.department].bg} font-bold text-[9px]`}>
+                        {currentEmployee.department}
+                      </span>
+                      <span>•</span>
+                      <span>ID: {currentEmployee.id}</span>
+                    </p>
+                    <p className="text-[10px] font-mono font-bold text-slate-500">NFC Badge HEX: {currentEmployee.nfcId}</p>
+                  </div>
+                </div>
+
+                <div className="bg-slate-50 p-4 border border-slate-150 rounded-xl text-xs space-y-1.5 text-slate-500">
+                  <p className="flex justify-between space-x-8">
+                    <span>Shift Profile:</span>
+                    <span className="font-bold text-slate-700">{currentEmployee.shift}</span>
+                  </p>
+                  <p className="flex justify-between space-x-8">
+                    <span>Weekly Target Hours:</span>
+                    <span className="font-bold text-slate-700">40.0 Hours</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Profile Stats ribbon */}
+              <div className="grid grid-cols-4 gap-6">
+                {[
+                  { label: 'Avg Attendance Rate', val: `${currentEmployee.attendanceRate}%`, desc: '+1.2% vs last month', color: 'border-l-4 border-green-500' },
+                  { label: 'Present Days (Month)', val: empStats.present, desc: `${empStats.working} active weekdays`, color: 'border-l-4 border-blue-500' },
+                  { label: 'Late Clock-Ins', val: empStats.late, desc: 'Flagged entries', color: 'border-l-4 border-amber-500' },
+                  { label: 'leave Days Taken', val: empStats.leave, desc: 'Annual & Sick metrics', color: 'border-l-4 border-slate-400' },
+                ].map((s, i) => (
+                  <div key={i} className={`p-5 rounded-xl border border-slate-200 shadow-sm bg-white ${s.color} flex flex-col justify-between h-24`}>
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{s.label}</span>
+                    <span className="text-2xl font-extrabold text-slate-800">{s.val}</span>
+                    <span className="text-[10px] text-slate-400 font-semibold">{s.desc}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Charts Grid */}
+              <div className="grid grid-cols-2 gap-8">
+
+                {/* Left: Monthly Trend line chart */}
+                <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
+                  <div>
+                    <h3 className="font-extrabold text-slate-800 text-sm">Attendance Trend (12 Months)</h3>
+                    <p className="text-xs text-slate-400 font-semibold">Percentage fluctuations on a rolling timeline</p>
+                  </div>
+
+                  <div className="h-64 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="rateColor" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#F97316" stopOpacity={0.2} />
+                            <stop offset="95%" stopColor="#F97316" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                        <XAxis dataKey="name" stroke="#94A3B8" fontSize={10} tickLine={false} />
+                        <YAxis stroke="#94A3B8" fontSize={10} tickLine={false} domain={[50, 100]} />
+                        <Tooltip formatter={(value) => [`${value}%`, 'Attendance Rate']} />
+                        <Area type="monotone" dataKey="rate" stroke="#F97316" strokeWidth={2.5} fillOpacity={1} fill="url(#rateColor)" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                {/* Right: Breakdown donut chart */}
+                <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4 flex flex-col justify-between">
+                  <div>
+                    <h3 className="font-extrabold text-slate-800 text-sm">Annual Attendance Categories</h3>
+                    <p className="text-xs text-slate-400 font-semibold">Distribution profile of all calendar workdays</p>
+                  </div>
+
+                  <div className="h-44 w-full relative flex items-center justify-center">
+                    {breakdownData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={breakdownData}
+                            innerRadius={50}
+                            outerRadius={70}
+                            paddingAngle={4}
+                            dataKey="value"
+                          >
+                            {breakdownData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip formatter={(value) => [`${value} days`, 'Total']} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <span className="text-xs text-slate-400 italic">No attendance breakdown log</span>
+                    )}
+                    <div className="absolute text-center mt-2">
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-widest block">Average</span>
+                      <span className="text-2xl font-extrabold text-slate-800">{currentEmployee.attendanceRate}%</span>
+                    </div>
+                  </div>
+
+                  {/* Legends */}
+                  <div className="flex justify-center space-x-6 text-[10px] font-bold text-slate-500">
+                    <span className="flex items-center"><span className="w-2 h-2 bg-emerald-500 rounded-full mr-1.5"></span>On Time</span>
+                    <span className="flex items-center"><span className="w-2 h-2 bg-amber-500 rounded-full mr-1.5"></span>Late</span>
+                    <span className="flex items-center"><span className="w-2 h-2 bg-blue-500 rounded-full mr-1.5"></span>Leave</span>
+                    <span className="flex items-center"><span className="w-2 h-2 bg-red-500 rounded-full mr-1.5"></span>Absent</span>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Monthly Summary Table */}
+              <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className="font-extrabold text-slate-800 text-sm">Attendance Summary by Month</h3>
+                    <p className="text-xs text-slate-400 font-semibold">Consolidated logs for the current quarter</p>
+                  </div>
+
+                  {/* Month Picker placeholder */}
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs font-bold text-slate-400">Quarter View:</span>
+                    <span className="text-xs bg-slate-100 font-bold text-slate-700 px-2.5 py-1 rounded-md">Q2 2026</span>
+                  </div>
+                </div>
+
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-250 text-slate-400 font-bold uppercase tracking-wider">
+                      <th className="py-2.5">Month</th>
+                      <th className="py-2.5 text-center">Working Days</th>
+                      <th className="py-2.5 text-center text-emerald-600">On Time Days</th>
+                      <th className="py-2.5 text-center text-amber-600">Late Days</th>
+                      <th className="py-2.5 text-center text-blue-600">Leave Days</th>
+                      <th className="py-2.5 text-center text-red-600">Absent Days</th>
+                      <th className="py-2.5 text-right">Attendance Rate</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {monthlySummaryTable.map((row, idx) => (
+                      <tr key={idx} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition duration-75">
+                        <td className="py-3.5 font-bold text-slate-700">{row.name}</td>
+                        <td className="py-3.5 text-center font-semibold text-slate-600">{row.working}</td>
+                        <td className="py-3.5 text-center font-bold text-emerald-600">{row.onTime}</td>
+                        <td className="py-3.5 text-center font-bold text-amber-600">{row.late}</td>
+                        <td className="py-3.5 text-center font-bold text-blue-600">{row.leave}</td>
+                        <td className="py-3.5 text-center font-bold text-red-600">{row.absent}</td>
+                        <td className="py-3.5 text-right font-extrabold text-slate-700">
+                          <span className={`px-2 py-0.5 rounded ${row.rate >= 92 ? 'bg-green-150 text-green-800' : row.rate >= 85 ? 'bg-amber-150 text-amber-800' : 'bg-red-150 text-red-800'
+                            }`}>
+                            {row.rate}%
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+            </div>
+          )}
+
+        </div>
+      );
+    }
+
+    // ==========================================
+    // PAGE 3: ATTENDANCE FEED COMPONENT
+    // ==========================================
+    function AttendanceFeedPage({ employees, attendanceRecords, setNfcModalOpen, selectedDate }) {
+      const [deptFilter, setDeptFilter] = useState('');
+      const [statusFilter, setStatusFilter] = useState('');
+
+      // Calculate today's metrics
+      const feedStats = useMemo(() => {
+        const todayRecs = attendanceRecords.filter(r => r.date === selectedDate);
+        let checkedIn = 0, late = 0, checkedOut = 0, pending = 0;
+
+        employees.forEach(emp => {
+          if (!emp.active) return;
+          const rec = todayRecs.find(r => r.employeeId === emp.id);
+          if (rec) {
+            if (rec.status === 'Checked In' || rec.status === 'Working') checkedIn++;
+            else if (rec.status === 'Late') {
+              checkedIn++;
+              late++;
+            } else if (rec.status === 'Checked Out') checkedOut++;
+          } else {
+            pending++;
+          }
+        });
+
+        return { checkedIn, late, checkedOut, pending, total: checkedIn + checkedOut + pending };
+      }, [attendanceRecords, employees, selectedDate]);
+
+      // Filtered today's records
+      const filteredTodayRecords = useMemo(() => {
+        const todayRecs = attendanceRecords.filter(r => r.date === selectedDate);
+        return employees.map(emp => {
+          const rec = todayRecs.find(r => r.employeeId === emp.id);
+          return {
+            employee: emp,
+            record: rec,
+            status: rec ? rec.status : 'NFC Pending'
+          };
+        }).filter(item => {
+          if (!item.employee.active && item.status === 'NFC Pending') return false; // Hide inactive pending employees
+          const matchesDept = deptFilter ? item.employee.department === deptFilter : true;
+          const matchesStatus = statusFilter ? item.status === statusFilter : true;
+          return matchesDept && matchesStatus;
+        });
+      }, [attendanceRecords, employees, deptFilter, statusFilter, selectedDate]);
+
+      // Historic records for below list
+      const historicalRecords = useMemo(() => {
+        return attendanceRecords
+          .filter(r => r.date !== selectedDate)
+          .sort((a, b) => new Date(b.date) - new Date(a.date))
+          .slice(0, 40); // show recent 40 historical records
+      }, [attendanceRecords, selectedDate]);
+
+      return (
+        <div className="grid grid-cols-12 gap-8 animate-slide-in">
+
+          {/* Left Panel: Table & History */}
+          <div className="col-span-8 space-y-8">
+
+            {/* Top stats */}
+            <div className="grid grid-cols-4 gap-4">
+              {[
+                { label: 'Checked In Now', val: feedStats.checkedIn, sub: 'Currently logged as present', color: 'border-green-400' },
+                { label: 'Late Arrivals', val: feedStats.late, sub: 'Swiped post shift start', color: 'border-amber-400' },
+                { label: 'Checked Out Today', val: feedStats.checkedOut, sub: 'Finished target shifts', color: 'border-blue-400' },
+                { label: 'Pending NFC Swipes', val: feedStats.pending, sub: 'No swipe logs registered', color: 'border-purple-400' },
+              ].map((c, i) => (
+                <div key={i} className={`p-4 bg-white border border-slate-200 rounded-xl shadow-sm border-l-4 ${c.color} flex flex-col justify-between h-20`}>
+                  <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">{c.label}</span>
+                  <span className="text-xl font-black text-slate-800">{c.val}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Attendance List */}
+            <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4">
+              <div className="flex justify-between items-center flex-wrap gap-2">
+                <div>
+                  <h3 className="font-extrabold text-slate-800 text-base">Shift Status Dashboard</h3>
+                  <p className="text-xs text-slate-400 font-semibold">Real-time status metrics of all workforce profiles</p>
+                </div>
+
+                {/* Filters */}
+                <div className="flex items-center space-x-2">
+                  <select
+                    value={deptFilter}
+                    onChange={(e) => setDeptFilter(e.target.value)}
+                    className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-600 focus:outline-none"
+                  >
+                    <option value="">All Depts</option>
+                    {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-600 focus:outline-none"
+                  >
+                    <option value="">All Statuses</option>
+                    {['Checked In', 'Checked Out', 'Late', 'NFC Pending', 'Absent', 'On Leave'].map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider">
+                      <th className="py-2">Employee</th>
+                      <th className="py-2">Dept</th>
+                      <th className="py-2">Clock In</th>
+                      <th className="py-2">Clock Out</th>
+                      <th className="py-2">Hours</th>
+                      <th className="py-2">Status</th>
+                      <th className="py-2 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredTodayRecords.map((item) => (
+                      <tr key={item.employee.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition duration-75">
+                        <td className="py-3 flex items-center space-x-2.5">
+                          <div className="w-7 h-7 bg-navy-800 text-slate-200 text-[10px] font-bold rounded-full flex items-center justify-center">
+                            {item.employee.name.split(' ').map(n => n[0]).join('')}
+                          </div>
+                          <span className="font-bold text-slate-800">{item.employee.name}</span>
+                        </td>
+                        <td className="py-3">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${DEPT_COLORS[item.employee.department].bg}`}>
+                            {item.employee.department}
+                          </span>
+                        </td>
+                        <td className="py-3 font-mono font-bold text-slate-600">
+                          {item.record && item.record.clockIn ? item.record.clockIn.slice(0, 5) : '--:--'}
+                        </td>
+                        <td className="py-3 font-mono font-bold text-slate-600">
+                          {item.record && item.record.clockOut ? item.record.clockOut.slice(0, 5) : '--:--'}
+                        </td>
+                        <td className="py-3 font-semibold text-slate-500">
+                          {item.record && item.record.hours ? `${item.record.hours} hrs` : '--'}
+                        </td>
+                        <td className="py-3">
+                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold ${STATUS_COLORS[item.status].bg}`}>
+                            {item.status}
+                          </span>
+                        </td>
+                        <td className="py-3 text-right">
+                          <button
+                            onClick={() => setNfcModalOpen(true)}
+                            className="text-accent-orange hover:text-orange-600 text-xs font-bold"
+                          >
+                            Trigger Tap
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Historical Attendance Section */}
+            <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4">
+              <div>
+                <h3 className="font-extrabold text-slate-800 text-base">Historical Shift Log</h3>
+                <p className="text-xs text-slate-400 font-semibold">Archive records of recent workdays (excluding weekends)</p>
+              </div>
+
+              <div className="overflow-x-auto max-h-[300px] overflow-y-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider sticky top-0 bg-white z-10">
+                      <th className="py-2">Date</th>
+                      <th className="py-2">Employee</th>
+                      <th className="py-2">Dept</th>
+                      <th className="py-2">Clock In</th>
+                      <th className="py-2">Clock Out</th>
+                      <th className="py-2">Hours Worked</th>
+                      <th className="py-2">Status badge</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {historicalRecords.map((rec, i) => (
+                      <tr key={i} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                        <td className="py-2.5 font-semibold text-slate-500">{rec.date}</td>
+                        <td className="py-2.5 font-bold text-slate-700">{rec.employeeName}</td>
+                        <td className="py-2.5">
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded ${DEPT_COLORS[rec.department].bg}`}>
+                            {rec.department}
+                          </span>
+                        </td>
+                        <td className="py-2.5 font-mono text-slate-500">{rec.clockIn || '--'}</td>
+                        <td className="py-2.5 font-mono text-slate-500">{rec.clockOut || '--'}</td>
+                        <td className="py-2.5 font-semibold text-slate-600">{rec.hours ? `${rec.hours} hrs` : '--'}</td>
+                        <td className="py-2.5">
+                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${STATUS_COLORS[rec.status].bg}`}>
+                            {rec.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Right Panel: Live Feed Activity Summary */}
+          <div className="col-span-4 space-y-6">
+
+            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+              <h3 className="font-extrabold text-slate-800 text-sm">Today Activity Status</h3>
+
+              <div className="space-y-3">
+                {[
+                  { label: 'Active Working Staff', count: feedStats.checkedIn - feedStats.late, pct: 60, color: 'bg-green-500' },
+                  { label: 'Late Commuters', count: feedStats.late, pct: 15, color: 'bg-amber-500' },
+                  { label: 'Shift Completed', count: feedStats.checkedOut, pct: 15, color: 'bg-blue-500' },
+                  { label: 'NFC Pending swipe', count: feedStats.pending, pct: 10, color: 'bg-purple-500' },
+                ].map((s, i) => (
+                  <div key={i} className="space-y-1">
+                    <div className="flex justify-between text-xs font-semibold">
+                      <span className="text-slate-500">{s.label}</span>
+                      <span className="text-slate-800">{s.count} employees</span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden border">
+                      <div className={`h-full ${s.color}`} style={{ width: `${s.count * 10 || 0}%` }}></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+              <h3 className="font-extrabold text-slate-800 text-sm">NFC Hardware Node Logs</h3>
+              <div className="border border-slate-150 rounded-xl p-4 bg-slate-50/50 space-y-3">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-bold text-slate-600">Active Gate Scanners</span>
+                  <span className="text-[10px] bg-emerald-150 text-emerald-800 px-2 py-0.5 rounded font-bold">8 active</span>
+                </div>
+                <div className="space-y-2 text-[11px] text-slate-500">
+                  <p className="flex justify-between">
+                    <span>Admin Block:</span>
+                    <span className="text-emerald-600 font-bold">Online</span>
+                  </p>
+                  <p className="flex justify-between">
+                    <span>Workshop East:</span>
+                    <span className="text-emerald-600 font-bold">Online</span>
+                  </p>
+                  <p className="flex justify-between">
+                    <span>Engineering Lab:</span>
+                    <span className="text-amber-600 font-bold">Delay (3 min)</span>
+                  </p>
+                  <p className="flex justify-between">
+                    <span>Dock Berth 4:</span>
+                    <span className="text-red-500 font-bold">Offline</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      );
+    }
+
+    // ==========================================
+    // PAGE 4: REPORTS GENERATOR
+    // ==========================================
+    function ReportsGenerator({ employees, attendanceRecords, leaveRequests, showToast }) {
+      const [tab, setTab] = useState('summary'); // 'summary', 'details'
+
+      const [reportType, setReportType] = useState('Monthly Attendance Summary');
+      const [selectedDept, setSelectedDept] = useState('');
+      const [selectedEmpId, setSelectedEmpId] = useState('');
+      const [dateStart, setDateStart] = useState('2026-05-12');
+      const [dateEnd, setDateEnd] = useState('2026-06-11');
+
+      // Aggregate Calculations
+      const aggregates = useMemo(() => {
+        // filter records by dates & filters
+        const filtered = attendanceRecords.filter(r => {
+          const withinDates = new Date(r.date) >= new Date(dateStart) && new Date(r.date) <= new Date(dateEnd);
+          const deptMatch = selectedDept ? r.department === selectedDept : true;
+          const empMatch = selectedEmpId ? r.employeeId === selectedEmpId : true;
+          return withinDates && deptMatch && empMatch;
+        });
+
+        let present = 0, late = 0, leave = 0, absent = 0;
+        filtered.forEach(r => {
+          if (r.status === 'Checked Out' || r.status === 'Checked In' || r.status === 'Working') present++;
+          else if (r.status === 'Late') {
+            present++;
+            late++;
+          } else if (r.status === 'Absent') absent++;
+          else if (r.status === 'On Leave') leave++;
+        });
+
+        const totalWorkingDays = present + absent;
+        const avgRate = totalWorkingDays > 0 ? Math.round((present / totalWorkingDays) * 100) : 92;
+
+        return { present, late, leave, absent, totalWorkingDays, avgRate };
+      }, [attendanceRecords, selectedDept, selectedEmpId, dateStart, dateEnd]);
+
+      // Weekly trend line chart (June 2026)
+      const weeklyTrend = [
+        { name: 'Wk 1 (May 15)', rate: 94 },
+        { name: 'Wk 2 (May 22)', rate: 91 },
+        { name: 'Wk 3 (May 29)', rate: 95 },
+        { name: 'Wk 4 (June 5)', rate: 93 },
+        { name: 'Wk 5 (June 11)', rate: aggregates.avgRate }
+      ];
+
+      // Distribution Donut
+      const distribData = [
+        { name: 'Present On Time', value: aggregates.present - aggregates.late, color: '#10B981' },
+        { name: 'Late Arrivals', value: aggregates.late, color: '#F59E0B' },
+        { name: 'Excused Leave', value: aggregates.leave, color: '#3B82F6' },
+        { name: 'Unexcused Absences', value: aggregates.absent, color: '#EF4444' }
+      ].filter(d => d.value > 0);
+
+      // Dept comparison bar chart
+      const deptComparison = useMemo(() => {
+        return DEPARTMENTS.map(dept => {
+          // get average rate
+          const deptRecs = attendanceRecords.filter(r => r.department === dept && new Date(r.date) >= new Date(dateStart) && new Date(r.date) <= new Date(dateEnd));
+          let present = 0, absent = 0;
+          deptRecs.forEach(r => {
+            if (r.status !== 'On Leave') {
+              if (r.status === 'Absent') absent++;
+              else present++;
+            }
+          });
+          const rate = present + absent > 0 ? Math.round((present / (present + absent)) * 100) : 90;
+          return { name: dept, rate };
+        });
+      }, [attendanceRecords, dateStart, dateEnd]);
+
+      // Table records mapping
+      const tableRows = useMemo(() => {
+        return employees.filter(e => {
+          const matchesDept = selectedDept ? e.department === selectedDept : true;
+          const matchesEmp = selectedEmpId ? e.id === selectedEmpId : true;
+          return matchesDept && matchesEmp;
+        }).map((emp, i) => {
+          const empRecs = attendanceRecords.filter(r => r.employeeId === emp.id && new Date(r.date) >= new Date(dateStart) && new Date(r.date) <= new Date(dateEnd));
+
+          let present = 0, late = 0, leave = 0, absent = 0;
+          empRecs.forEach(r => {
+            if (r.status === 'Checked Out' || r.status === 'Checked In' || r.status === 'Working') present++;
+            else if (r.status === 'Late') {
+              present++;
+              late++;
+            } else if (r.status === 'Absent') absent++;
+            else if (r.status === 'On Leave') leave++;
+          });
+
+          const workingDays = present + absent;
+          const rate = workingDays > 0 ? Math.round((present / workingDays) * 100) : emp.attendanceRate;
+
+          return {
+            no: i + 1,
+            name: emp.name,
+            dept: emp.department,
+            working: workingDays,
+            present,
+            late,
+            leave,
+            absent,
+            rate
+          };
+        });
+      }, [employees, attendanceRecords, selectedDept, selectedEmpId, dateStart, dateEnd]);
+
+      return (
+        <div className="space-y-8 animate-slide-in">
+
+          {/* Report Setup Controls */}
+          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-6">
+            <h3 className="font-extrabold text-slate-800 text-sm">Report Configuration Panel</h3>
+
+            <div className="grid grid-cols-5 gap-4">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-2">Report Type</label>
+                <select
+                  value={reportType}
+                  onChange={(e) => setReportType(e.target.value)}
+                  className="bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs font-semibold focus:outline-none w-full text-slate-700 shadow-sm"
+                >
+                  <option>Monthly Attendance Summary</option>
+                  <option>Detailed Employee Report</option>
+                  <option>Department Attendance Report</option>
+                  <option>Leave Summary Report</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-2">Department</label>
+                <select
+                  value={selectedDept}
+                  onChange={(e) => { setSelectedDept(e.target.value); setSelectedEmpId(''); }}
+                  className="bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs font-semibold focus:outline-none w-full text-slate-700 shadow-sm"
+                >
+                  <option value="">All Divisions</option>
+                  {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-2">Specific Employee</label>
+                <select
+                  value={selectedEmpId}
+                  onChange={(e) => setSelectedEmpId(e.target.value)}
+                  className="bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs font-semibold focus:outline-none w-full text-slate-700 shadow-sm"
+                >
+                  <option value="">All Employees</option>
+                  {employees
+                    .filter(e => selectedDept ? e.department === selectedDept : true)
+                    .map(e => <option key={e.id} value={e.id}>{e.name}</option>)
+                  }
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-2">Date Start</label>
+                <input
+                  type="date"
+                  value={dateStart}
+                  onChange={(e) => setDateStart(e.target.value)}
+                  className="bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs font-semibold focus:outline-none w-full text-slate-700 shadow-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-2">Date End</label>
+                <input
+                  type="date"
+                  value={dateEnd}
+                  onChange={(e) => setDateEnd(e.target.value)}
+                  className="bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs font-semibold focus:outline-none w-full text-slate-700 shadow-sm"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-2">
+              <button
+                onClick={() => showToast(`Report compilation success. ${tableRows.length} dataset rows filtered.`, 'success')}
+                className="bg-navy-800 hover:bg-navy-700 text-white font-bold px-4 py-2 rounded-lg text-xs shadow-md transition"
+              >
+                Compile Report Data
+              </button>
+              <button
+                onClick={() => showToast('Export action triggered: Excel export queued on system.')}
+                className="border border-slate-250 bg-white hover:bg-slate-50 text-slate-700 font-bold px-4 py-2 rounded-lg text-xs shadow-sm transition"
+              >
+                Export Excel (.xlsx)
+              </button>
+            </div>
+          </div>
+
+          {/* Report summary cards */}
+          <div className="grid grid-cols-6 gap-4 animate-slide-in">
+            {[
+              { label: 'Workdays present', val: aggregates.present, color: 'text-green-600' },
+              { label: 'Late exceptions', val: aggregates.late, color: 'text-amber-500' },
+              { label: 'Excused leave', val: aggregates.leave, color: 'text-blue-500' },
+              { label: 'Absences logged', val: aggregates.absent, color: 'text-red-500' },
+              { label: 'Avg attendance rate', val: `${aggregates.avgRate}%`, color: 'text-indigo-600' },
+              { label: 'Target working days', val: aggregates.totalWorkingDays, color: 'text-slate-600' },
+            ].map((c, i) => (
+              <div key={i} className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm text-center">
+                <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block mb-1">{c.label}</span>
+                <span className={`text-xl font-extrabold ${c.color}`}>{c.val}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Charts Grid */}
+          <div className="grid grid-cols-12 gap-8">
+
+            {/* Weekly trend line chart (6-span) */}
+            <div className="col-span-4 bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+              <h4 className="font-extrabold text-slate-700 text-xs uppercase tracking-wider">Weekly Attendance Trend</h4>
+              <div className="h-56 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={weeklyTrend} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+                    <XAxis dataKey="name" stroke="#94A3B8" fontSize={9} />
+                    <YAxis stroke="#94A3B8" fontSize={9} domain={[60, 100]} />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="rate" stroke="#6366F1" strokeWidth={2.5} activeDot={{ r: 6 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Distribution donut (4-span) */}
+            <div className="col-span-4 bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+              <h4 className="font-extrabold text-slate-700 text-xs uppercase tracking-wider">Attendance Distribution</h4>
+              <div className="h-56 w-full flex items-center justify-center relative">
+                {distribData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={distribData}
+                        innerRadius={42}
+                        outerRadius={62}
+                        paddingAngle={3}
+                        dataKey="value"
+                      >
+                        {distribData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <span className="text-xs text-slate-400 italic">No distribution logs</span>
+                )}
+                <div className="absolute text-center mt-2">
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Average</span>
+                  <span className="text-xl font-extrabold text-slate-700">{aggregates.avgRate}%</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Dept Comparison bar (4-span) */}
+            <div className="col-span-4 bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+              <h4 className="font-extrabold text-slate-700 text-xs uppercase tracking-wider">Division Performance Comparison</h4>
+              <div className="h-56 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={deptComparison} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+                    <XAxis dataKey="name" stroke="#94A3B8" fontSize={8} interval={0} />
+                    <YAxis stroke="#94A3B8" fontSize={9} domain={[60, 100]} />
+                    <Tooltip />
+                    <Bar dataKey="rate" fill="#10B981" radius={[4, 4, 0, 0]}>
+                      {deptComparison.map((entry, idx) => (
+                        <Cell key={`cell-${idx}`} fill={DEPT_COLORS[entry.name].chart} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Compiled summary table */}
+          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4">
+            <h4 className="font-extrabold text-slate-700 text-xs uppercase tracking-wider">Compiled Employee Ledger</h4>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider">
+                    <th className="py-2.5">No.</th>
+                    <th className="py-2.5">Employee Profile</th>
+                    <th className="py-2.5">Division</th>
+                    <th className="py-2.5 text-center">Working Days</th>
+                    <th className="py-2.5 text-center text-green-600">Present</th>
+                    <th className="py-2.5 text-center text-amber-500">Late Exceptions</th>
+                    <th className="py-2.5 text-center text-blue-600">Excused Leave</th>
+                    <th className="py-2.5 text-center text-red-600">Absences</th>
+                    <th className="py-2.5 text-right">Attendance Rate</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tableRows.map((row) => (
+                    <tr key={row.no} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition duration-75">
+                      <td className="py-3 font-semibold text-slate-400">{row.no}</td>
+                      <td className="py-3 font-bold text-slate-700">{row.name}</td>
+                      <td className="py-3">
+                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded ${DEPT_COLORS[row.dept].bg}`}>
+                          {row.dept}
+                        </span>
+                      </td>
+                      <td className="py-3 text-center font-semibold text-slate-600">{row.working}</td>
+                      <td className="py-3 text-center font-semibold text-green-600">{row.present}</td>
+                      <td className="py-3 text-center font-semibold text-amber-600">{row.late}</td>
+                      <td className="py-3 text-center font-semibold text-blue-600">{row.leave}</td>
+                      <td className="py-3 text-center font-semibold text-red-600">{row.absent}</td>
+                      <td className="py-3 text-right font-extrabold text-slate-700">{row.rate}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      );
+    }
+
+    // ==========================================
+    // PAGE 5: LEAVE REQUESTS COMPONENT
+    // ==========================================
+    function LeaveRequestsPage({ employees, leaveRequests, setLeaveRequests, showToast, selectedDate }) {
+      const [tab, setTab] = useState('All'); // 'All', 'Pending', 'Approved', 'Rejected'
+      const [historyTab, setHistoryTab] = useState('team'); // 'my', 'team'
+
+      // Filters
+      const [deptFilter, setDeptFilter] = useState('');
+      const [leaveTypeFilter, setLeaveTypeFilter] = useState('');
+
+      // Form States
+      const [applyEmpId, setApplyEmpId] = useState('EMP0001');
+      const [applyType, setApplyType] = useState('Annual');
+      const [applyStart, setApplyStart] = useState('2026-06-15');
+      const [applyEnd, setApplyEnd] = useState('2026-06-17');
+      const [applyReason, setApplyReason] = useState('');
+
+      // Auto-calculated leave days duration
+      const calculatedDays = useMemo(() => {
+        if (!applyStart || !applyEnd) return 0;
+        const diffTime = Math.abs(new Date(applyEnd) - new Date(applyStart));
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        return isNaN(diffDays) ? 0 : diffDays;
+      }, [applyStart, applyEnd]);
+
+      // Statistics
+      const leaveStats = useMemo(() => {
+        const pending = leaveRequests.filter(r => r.status === 'Pending').length;
+        const approved = leaveRequests.filter(r => r.status === 'Approved').length;
+        const rejected = leaveRequests.filter(r => r.status === 'Rejected').length;
+        // Total days approved
+        const totalApprovedDays = leaveRequests
+          .filter(r => r.status === 'Approved')
+          .reduce((sum, r) => sum + r.days, 0);
+
+        return { pending, approved, rejected, totalApprovedDays };
+      }, [leaveRequests]);
+
+      // Filtered Leave Requests
+      const filteredRequests = useMemo(() => {
+        return leaveRequests.filter(req => {
+          const tabMatch = tab === 'All' ? true : req.status === tab;
+          const deptMatch = deptFilter ? req.department === deptFilter : true;
+          const typeMatch = leaveTypeFilter ? req.leaveType === leaveTypeFilter : true;
+          return tabMatch && deptMatch && typeMatch;
+        });
+      }, [leaveRequests, tab, deptFilter, leaveTypeFilter]);
+
+      // Submit new leave request
+      const handleApplyLeave = (e) => {
+        e.preventDefault();
+        const emp = employees.find(e => e.id === applyEmpId);
+
+        if (!emp) {
+          showToast('Invalid employee selected', 'error');
+          return;
+        }
+
+        const newReq = {
+          id: `LV${String(leaveRequests.length + 1).padStart(3, '0')}`,
+          employeeId: emp.id,
+          employeeName: emp.name,
+          department: emp.department,
+          leaveType: applyType,
+          startDate: applyStart,
+          endDate: applyEnd,
+          days: calculatedDays,
+          reason: applyReason,
+          status: 'Pending',
+          appliedOn: new Date().toISOString().split('T')[0]
+        };
+
+        setLeaveRequests([newReq, ...leaveRequests]);
+        setApplyReason('');
+        showToast(`Leave application submitted for ${emp.name} (${calculatedDays} days). Status: Pending approval.`);
+      };
+
+      // Handle Evaluation (Approve/Reject)
+      const handleEvaluateRequest = (reqId, isApproved) => {
+        const status = isApproved ? 'Approved' : 'Rejected';
+        setLeaveRequests(leaveRequests.map(r => {
+          if (r.id === reqId) {
+            return { ...r, status };
+          }
+          return r;
+        }));
+        showToast(`Leave request ${reqId} has been successfully ${status.toLowerCase()}.`);
+      };
+
+      // Calendar dates mapping for Dot Indicators
+      // Generate days for June 2026 (June has 30 days, 1st is Monday)
+      const calendarDays = useMemo(() => {
+        const days = [];
+        for (let i = 1; i <= 30; i++) {
+          const dayStr = `2026-06-${String(i).padStart(2, '0')}`;
+          // Find leaves active on this day
+          const activeLeaves = leaveRequests.filter(req => {
+            if (req.status !== 'Approved') return false;
+            const d = new Date(dayStr);
+            return d >= new Date(req.startDate) && d <= new Date(req.endDate);
+          });
+          days.push({ day: i, dateStr: dayStr, leaves: activeLeaves });
+        }
+        return days;
+      }, [leaveRequests]);
+
+      return (
+        <div className="space-y-8 animate-slide-in">
+
+          {/* Top summary cards */}
+          <div className="grid grid-cols-4 gap-6">
+            {[
+              { label: 'Pending Evaluation', val: leaveStats.pending, sub: 'Needs manager review', color: 'border-l-4 border-amber-400' },
+              { label: 'Approved Requests', val: leaveStats.approved, sub: 'Active & upcoming exemptions', color: 'border-l-4 border-green-500' },
+              { label: 'Rejected Applications', val: leaveStats.rejected, sub: 'Disallowed applications', color: 'border-l-4 border-red-500' },
+              { label: 'Total Leave Days taken', val: `${leaveStats.totalApprovedDays} days`, sub: 'Excused from shifts', color: 'border-l-4 border-slate-400' },
+            ].map((c, i) => (
+              <div key={i} className="p-5 bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col justify-between h-24">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{c.label}</span>
+                <span className="text-2xl font-extrabold text-slate-800">{c.val}</span>
+                <span className="text-[10px] text-slate-400 font-semibold">{c.sub}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Double column grid layout */}
+          <div className="grid grid-cols-12 gap-8">
+
+            {/* Left Column: Leave Table & History */}
+            <div className="col-span-8 space-y-6">
+
+              {/* Request Table Panel */}
+              <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4">
+                <div className="flex justify-between items-center flex-wrap gap-2">
+                  <div>
+                    <h3 className="font-extrabold text-slate-800 text-base font-bold">Leave Requests Registry</h3>
+                    <p className="text-xs text-slate-400 font-semibold font-semibold">Active workflow items needing management attention</p>
+                  </div>
+
+                  {/* Category tabs */}
+                  <div className="flex bg-slate-100 border p-1 rounded-lg space-x-1">
+                    {['All', 'Pending', 'Approved', 'Rejected'].map(t => (
+                      <button
+                        key={t}
+                        onClick={() => setTab(t)}
+                        className={`text-xs px-3 py-1 font-bold rounded-md transition ${tab === t ? 'bg-white text-navy-800 shadow' : 'text-slate-500 hover:text-slate-800'
+                          }`}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Filters */}
+                <div className="flex items-center space-x-4">
+                  <select
+                    value={deptFilter}
+                    onChange={(e) => setDeptFilter(e.target.value)}
+                    className="bg-slate-50 border border-slate-250 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-600 focus:outline-none"
+                  >
+                    <option value="">All Divisions</option>
+                    {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+
+                  <select
+                    value={leaveTypeFilter}
+                    onChange={(e) => setLeaveTypeFilter(e.target.value)}
+                    className="bg-slate-50 border border-slate-250 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-600 focus:outline-none"
+                  >
+                    <option value="">All Leave Types</option>
+                    {['Annual', 'Sick', 'Medical', 'Unpaid'].map(l => <option key={l} value={l}>{l}</option>)}
+                  </select>
+                </div>
+
+                {/* Table */}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider">
+                        <th className="py-2.5">Employee</th>
+                        <th className="py-2.5">Dept</th>
+                        <th className="py-2.5">Type</th>
+                        <th className="py-2.5">Schedule</th>
+                        <th className="py-2.5 text-center">Days</th>
+                        <th className="py-2.5">Reason</th>
+                        <th className="py-2.5">Status</th>
+                        <th className="py-2.5 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredRequests.map((req) => (
+                        <tr key={req.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition duration-75">
+                          <td className="py-3 font-bold text-slate-800">{req.employeeName}</td>
+                          <td className="py-3">
+                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded ${DEPT_COLORS[req.department].bg}`}>
+                              {req.department}
+                            </span>
+                          </td>
+                          <td className="py-3">
+                            <span className={`text-[10px] font-bold ${req.leaveType === 'Annual' ? 'text-green-600' :
+                              req.leaveType === 'Sick' ? 'text-orange-500' :
+                                req.leaveType === 'Medical' ? 'text-blue-600' : 'text-gray-500'
+                              }`}>
+                              {req.leaveType}
+                            </span>
+                          </td>
+                          <td className="py-3 text-slate-500 font-semibold">{req.startDate} to {req.endDate}</td>
+                          <td className="py-3 text-center font-bold text-slate-600">{req.days}</td>
+                          <td className="py-3 text-slate-500 truncate max-w-[120px] font-medium" title={req.reason}>{req.reason}</td>
+                          <td className="py-3">
+                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${STATUS_COLORS[req.status].bg}`}>
+                              {req.status}
+                            </span>
+                          </td>
+                          <td className="py-3 text-right space-x-2">
+                            {req.status === 'Pending' ? (
+                              <React.Fragment>
+                                <button
+                                  onClick={() => handleEvaluateRequest(req.id, true)}
+                                  className="text-green-600 hover:text-green-800 font-bold"
+                                >
+                                  Approve
+                                </button>
+                                <button
+                                  onClick={() => handleEvaluateRequest(req.id, false)}
+                                  className="text-red-500 hover:text-red-700 font-bold"
+                                >
+                                  Reject
+                                </button>
+                              </React.Fragment>
+                            ) : (
+                              <span className="text-slate-400 font-semibold italic text-[10px]">Evaluated</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                      {filteredRequests.length === 0 && (
+                        <tr>
+                          <td colSpan="8" className="text-center py-6 text-slate-400 italic">No leave requests found.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Right Column: Balances & Calendar & Apply Form */}
+            <div className="col-span-4 space-y-6">
+
+              {/* Leave Balance Panel */}
+              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+                <h3 className="font-extrabold text-slate-800 text-sm">Leave Balances</h3>
+
+                <div className="space-y-3">
+                  {[
+                    { label: 'Annual Leave Balance', val: '18.5 / 25.0 Days', pct: 74, color: 'bg-green-500' },
+                    { label: 'Sick Leave Balance', val: '8.0 / 12.0 Days', pct: 66, color: 'bg-orange-500' },
+                    { label: 'Medical Leave Balance', val: '4.0 / 10.0 Days', pct: 40, color: 'bg-blue-500' },
+                    { label: 'Unpaid Leave Logged', val: '6.0 Days Used', pct: 100, color: 'bg-gray-400' },
+                  ].map((b, i) => (
+                    <div key={i} className="space-y-1">
+                      <div className="flex justify-between text-xs font-semibold">
+                        <span className="text-slate-500">{b.label}</span>
+                        <span className="text-slate-800">{b.val}</span>
+                      </div>
+                      <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden border">
+                        <div className={`h-full ${b.color}`} style={{ width: `${b.pct}%` }}></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Team Leave Calendar */}
+              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="font-extrabold text-slate-800 text-sm">Team Leave Calendar</h3>
+                  <span className="text-[10px] bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded">June 2026</span>
+                </div>
+
+                <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400 mb-1">
+                  <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
+                </div>
+
+                <div className="grid grid-cols-7 gap-1">
+                  {/* June 1st, 2026 starts on Monday. No offset padding needed */}
+                  {calendarDays.map((d) => {
+                    const hasLeave = d.leaves.length > 0;
+                    const isToday = d.dateStr === '2026-06-11';
+
+                    return (
+                      <div
+                        key={d.day}
+                        title={hasLeave ? d.leaves.map(l => `${l.employeeName} (${l.leaveType})`).join('\n') : ''}
+                        className={`h-9 border border-slate-150 rounded flex flex-col justify-between p-1 bg-slate-50/50 relative hover:bg-slate-100 cursor-pointer ${isToday ? 'border-accent-orange bg-orange-50/30' : ''
+                          }`}
+                      >
+                        <span className={`text-[9px] font-bold ${isToday ? 'text-accent-orange font-black' : 'text-slate-500'}`}>{d.day}</span>
+                        {hasLeave && (
+                          <div className="flex justify-center space-x-0.5">
+                            {d.leaves.slice(0, 3).map((l, i) => (
+                              <span
+                                key={i}
+                                className={`w-1.5 h-1.5 rounded-full ${l.leaveType === 'Annual' ? 'bg-green-500' :
+                                  l.leaveType === 'Sick' ? 'bg-orange-500' :
+                                    l.leaveType === 'Medical' ? 'bg-blue-500' : 'bg-gray-400'
+                                  }`}
+                              ></span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+          {/* Form panel at bottom */}
+          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+            <h3 className="font-extrabold text-slate-800 text-sm mb-4">Submit New Leave Request</h3>
+
+            <form onSubmit={handleApplyLeave} className="grid grid-cols-12 gap-6">
+              <div className="col-span-3">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-2">Employee</label>
+                <select
+                  value={applyEmpId}
+                  onChange={(e) => setApplyEmpId(e.target.value)}
+                  className="bg-slate-50 border border-slate-250 rounded-lg p-2.5 text-xs font-semibold focus:outline-none w-full text-slate-700 shadow-sm"
+                >
+                  {employees.map(e => <option key={e.id} value={e.id}>{e.name} ({e.department})</option>)}
+                </select>
+              </div>
+
+              <div className="col-span-3">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-2">Leave Type</label>
+                <select
+                  value={applyType}
+                  onChange={(e) => setApplyType(e.target.value)}
+                  className="bg-slate-50 border border-slate-250 rounded-lg p-2.5 text-xs font-semibold focus:outline-none w-full text-slate-700 shadow-sm"
+                >
+                  <option>Annual</option>
+                  <option>Sick</option>
+                  <option>Medical</option>
+                  <option>Unpaid</option>
+                </select>
+              </div>
+
+              <div className="col-span-2">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-2">Start Date</label>
+                <input
+                  type="date"
+                  value={applyStart}
+                  onChange={(e) => setApplyStart(e.target.value)}
+                  className="bg-slate-50 border border-slate-250 rounded-lg p-2 text-xs font-semibold focus:outline-none w-full text-slate-700 shadow-sm"
+                />
+              </div>
+
+              <div className="col-span-2">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-2">End Date</label>
+                <input
+                  type="date"
+                  value={applyEnd}
+                  onChange={(e) => setApplyEnd(e.target.value)}
+                  className="bg-slate-50 border border-slate-250 rounded-lg p-2 text-xs font-semibold focus:outline-none w-full text-slate-700 shadow-sm"
+                />
+              </div>
+
+              <div className="col-span-2 flex flex-col justify-end">
+                <span className="text-[10px] font-bold text-slate-400 uppercase mb-2 block">Total Duration</span>
+                <span className="text-base font-black text-slate-700 py-1">{calculatedDays} {calculatedDays === 1 ? 'Day' : 'Days'}</span>
+              </div>
+
+              <div className="col-span-10">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-2">Leave Rationale / Reason</label>
+                <textarea
+                  rows="2"
+                  value={applyReason}
+                  onChange={(e) => setApplyReason(e.target.value)}
+                  placeholder="State reason here..."
+                  required
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-accent-orange text-slate-700 shadow-sm"
+                />
+              </div>
+
+              <div className="col-span-2 flex items-end justify-end">
+                <button
+                  type="submit"
+                  className="w-full bg-accent-orange hover:bg-orange-600 text-white font-bold py-2.5 rounded-lg text-xs shadow-md transition"
+                >
+                  Submit Request
+                </button>
+              </div>
+            </form>
+          </div>
+
+        </div>
+      );
+    }
+
+    // ==========================================
+    // PAGE 6: DEPARTMENTS COMPONENT
+    // ==========================================
+    function DepartmentsPage({ employees, attendanceRecords, leaveRequests, selectedDeptName, setSelectedDeptName, selectedDate }) {
+      const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'details'
+
+      // Metrics
+      const totalDepts = DEPARTMENTS.length;
+      const totalEmployees = employees.length;
+      const avgRate = 92.4; // constant aggregate average
+
+      const activeLeaves = leaveRequests.filter(
+        r => r.status === 'Approved' &&
+          new Date(selectedDate) >= new Date(r.startDate) &&
+          new Date(selectedDate) <= new Date(r.endDate)
+      ).length;
+
+      // Department aggregate details
+      const departmentData = useMemo(() => {
+        return DEPARTMENTS.map(dept => {
+          const deptStaff = employees.filter(e => e.department === dept);
+          const presentToday = attendanceRecords.filter(r => r.date === selectedDate && r.department === dept && (r.status === 'Checked In' || r.status === 'Late' || r.status === 'Checked Out')).length;
+
+          // Managers
+          const managerMap = {
+            'HSE': 'Alice Williams', 'Finance': 'Jane Smith', 'IT': 'John Doe', 'Operations': 'Bob Johnson', 'Admin': 'Jack White', 'Engineering': 'David Miller', 'Marine Services': 'Eva Davis'
+          };
+
+          // get average attendance
+          let totalPresent = 0, totalWorking = 0;
+          const deptRecs = attendanceRecords.filter(r => r.department === dept);
+          deptRecs.forEach(r => {
+            if (r.status !== 'On Leave') {
+              if (r.status === 'Absent') totalWorking++;
+              else {
+                totalPresent++;
+                totalWorking++;
+              }
+            }
+          });
+          const rate = totalWorking > 0 ? Math.round((totalPresent / totalWorking) * 100) : 90;
+
+          return {
+            name: dept,
+            manager: managerMap[dept],
+            count: deptStaff.length,
+            workingToday: presentToday,
+            attendanceRate: rate
+          };
+        });
+      }, [employees, attendanceRecords, selectedDate]);
+
+      // Details Sub-calculations
+      const selectedDeptInfo = useMemo(() => {
+        const info = departmentData.find(d => d.name === selectedDeptName);
+        const locationMap = {
+          'IT': 'Server Facility, Block C', 'Finance': 'Floor 2, HQ Block B', 'Operations': 'Control Room, Block A', 'HSE': 'Workshop East Annex', 'Admin': 'Lobby Reception Area', 'Engineering': 'R&D Lab Suite 4', 'Marine Services': 'Dock Gate Area 4'
+        };
+        const emailMap = {
+          'IT': 'it.support@bakeo.com', 'Finance': 'accounts@bakeo.com', 'Operations': 'ops.ops@bakeo.com', 'HSE': 'safety.hq@bakeo.com', 'Admin': 'reception@bakeo.com', 'Engineering': 'lab.suite@bakeo.com', 'Marine Services': 'vessels@bakeo.com'
+        };
+        return {
+          ...info,
+          location: locationMap[selectedDeptName] || 'HQ Compound',
+          email: emailMap[selectedDeptName] || 'info@bakeo.com'
+        };
+      }, [departmentData, selectedDeptName]);
+
+      const selectedDeptStaff = useMemo(() => {
+        return employees.filter(e => e.department === selectedDeptName);
+      }, [employees, selectedDeptName]);
+
+      return (
+        <div className="space-y-8 animate-slide-in">
+
+          {/* Summary stats */}
+          <div className="grid grid-cols-4 gap-6">
+            {[
+              { label: 'Total Divisions', val: totalDepts, sub: 'Operating sectors', color: 'border-slate-200' },
+              { label: 'Staff strength', val: totalEmployees, sub: 'Registered workforce', color: 'border-emerald-250' },
+              { label: 'Network Avg Punctuality', val: `${avgRate}%`, sub: 'Rolling 30-day average', color: 'border-blue-200' },
+              { label: 'Employees on Leave', val: activeLeaves, sub: 'Exempted today', color: 'border-indigo-200' },
+            ].map((c, i) => (
+              <div key={i} className="p-5 bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col justify-between h-24">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{c.label}</span>
+                <span className="text-2xl font-extrabold text-slate-800">{c.val}</span>
+                <span className="text-[10px] text-slate-400 font-semibold">{c.sub}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* VIEW MODE GRID */}
+          {viewMode === 'grid' && (
+            <div className="grid grid-cols-3 gap-6">
+              {departmentData.map((dept) => (
+                <div key={dept.name} className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col justify-between h-52 hover:shadow-md transition duration-150">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${DEPT_COLORS[dept.name].bg}`}>
+                        {dept.name}
+                      </span>
+                      <h4 className="text-sm font-extrabold text-slate-700 mt-3 flex items-center">
+                        <Icon name="user" className="w-4 h-4 mr-1 text-slate-400" />
+                        Lead: {dept.manager}
+                      </h4>
+                    </div>
+                    <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center border">
+                      <Icon name="departments" className="w-5 h-5 text-slate-400" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 py-2 text-xs border-t border-b border-slate-100">
+                    <div>
+                      <span className="text-slate-400 font-semibold">Staff count:</span>
+                      <p className="text-sm font-black text-slate-700">{dept.count} profiles</p>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 font-semibold">Active today:</span>
+                      <p className="text-sm font-black text-slate-700">{dept.workingToday} active</p>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center space-x-1">
+                      <span className="text-xs text-slate-400 font-bold">Attendance:</span>
+                      <span className="text-xs font-extrabold text-slate-700">{dept.attendanceRate}%</span>
+                    </div>
+
+                    <button
+                      onClick={() => { setSelectedDeptName(dept.name); setViewMode('details'); }}
+                      className="text-xs font-bold text-accent-orange hover:text-orange-600 flex items-center transition"
+                    >
+                      View Division
+                      <Icon name="chevronRight" className="w-4 h-4 ml-1" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* VIEW MODE DETAILS */}
+          {viewMode === 'details' && (
+            <div className="grid grid-cols-12 gap-8 animate-slide-in">
+              {/* Left sidebar card */}
+              <div className="col-span-4 space-y-6">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs px-4 py-2 rounded-lg flex items-center shadow-sm transition"
+                >
+                  <Icon name="chevronLeft" className="w-4 h-4 mr-2" />
+                  Back to Divisions
+                </button>
+
+                <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
+                  <div className="flex justify-between items-center pb-4 border-b">
+                    <span className={`text-xs font-extrabold px-3 py-0.5 rounded-full ${DEPT_COLORS[selectedDeptInfo.name].bg}`}>
+                      {selectedDeptInfo.name}
+                    </span>
+                    <span className="text-xs text-slate-400 font-bold">ID: DPT-{selectedDeptInfo.name.toUpperCase().slice(0, 3)}</span>
+                  </div>
+
+                  <div className="space-y-3.5 text-xs text-slate-600">
+                    <div>
+                      <span className="text-slate-400 font-semibold block mb-1">Division Manager</span>
+                      <span className="font-extrabold text-slate-800 text-sm block">{selectedDeptInfo.manager}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 font-semibold block mb-1">Physical Location</span>
+                      <span className="font-bold text-slate-700 block">{selectedDeptInfo.location}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 font-semibold block mb-1">Department Email</span>
+                      <span className="font-bold text-slate-700 font-mono block">{selectedDeptInfo.email}</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t space-y-2.5 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400 font-semibold">Total Employees:</span>
+                      <span className="font-bold text-slate-800">{selectedDeptInfo.count} profiles</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400 font-semibold">Currently Active:</span>
+                      <span className="font-bold text-slate-800">{selectedDeptInfo.workingToday} active</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400 font-semibold">Division Attendance Rate:</span>
+                      <span className="font-bold text-slate-800">{selectedDeptInfo.attendanceRate}%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right content area: Staff lists */}
+              <div className="col-span-8 bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
+                <div className="pb-4 border-b">
+                  <h3 className="font-extrabold text-slate-800 text-base">Division Personnel</h3>
+                  <p className="text-xs text-slate-400 font-semibold">All profiles enrolled under this sector</p>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider">
+                        <th className="py-2.5">Staff Profile</th>
+                        <th className="py-2.5">Position</th>
+                        <th className="py-2.5">Attendance Rate</th>
+                        <th className="py-2.5">NFC Hex ID</th>
+                        <th className="py-2.5 text-right">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedDeptStaff.map(emp => (
+                        <tr key={emp.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition duration-75">
+                          <td className="py-3 font-bold text-slate-800 flex items-center space-x-2.5">
+                            <div className="w-7 h-7 bg-navy-800 text-slate-200 text-[10px] font-bold rounded-full flex items-center justify-center">
+                              {emp.name.split(' ').map(n => n[0]).join('')}
+                            </div>
+                            <span>{emp.name}</span>
+                          </td>
+                          <td className="py-3 font-semibold text-slate-500">{emp.position}</td>
+                          <td className="py-3">
+                            <div className="flex items-center space-x-1.5">
+                              <span className="font-extrabold">{emp.attendanceRate}%</span>
+                              <div className="w-16 bg-slate-100 h-1.5 rounded overflow-hidden">
+                                <div className="h-full bg-emerald-500" style={{ width: `${emp.attendanceRate}%` }}></div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3 text-slate-500 font-mono">{emp.nfcId}</td>
+                          <td className="py-3 text-right">
+                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${STATUS_COLORS[emp.status].bg}`}>
+                              {emp.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+        </div>
+      );
+    }
+
+    // ==========================================
+    // PAGE 7: DEVICES (NFC) COMPONENT
+    // ==========================================
+    function DevicesNfcPage({ nfcDevices, setNfcDevices, deviceLogs, showToast }) {
+      const [statusFilter, setStatusFilter] = useState('');
+
+      // Calculations
+      const totalCount = nfcDevices.length;
+      const onlineCount = nfcDevices.filter(d => d.status === 'Online').length;
+      const delayCount = nfcDevices.filter(d => d.status === 'Sync Delay').length;
+      const offlineCount = nfcDevices.filter(d => d.status === 'Offline').length;
+
+      // Filtered devices
+      const filteredDevices = useMemo(() => {
+        return nfcDevices.filter(d => statusFilter ? d.status === statusFilter : true);
+      }, [nfcDevices, statusFilter]);
+
+      return (
+        <div className="grid grid-cols-12 gap-8 animate-slide-in">
+
+          {/* Left panel: Table & activity */}
+          <div className="col-span-8 space-y-6">
+
+            {/* Stats */}
+            <div className="grid grid-cols-4 gap-4">
+              {[
+                { label: 'Total Devices Enrolled', val: totalCount, color: 'border-slate-300' },
+                { label: 'Online & active', val: onlineCount, color: 'border-emerald-500 bg-emerald-50/10' },
+                { label: 'Offline / Warning', val: offlineCount, color: 'border-red-500 bg-red-50/10' },
+                { label: 'Sync Replication Delay', val: delayCount, color: 'border-amber-400 bg-amber-50/10' },
+              ].map((c, i) => (
+                <div key={i} className={`p-4 bg-white border border-slate-200 rounded-xl shadow-sm border-l-4 ${c.color} flex flex-col justify-between h-20`}>
+                  <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">{c.label}</span>
+                  <span className="text-xl font-black text-slate-800">{c.val}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Device Table */}
+            <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4">
+              <div className="flex justify-between items-center flex-wrap gap-2">
+                <div>
+                  <h3 className="font-extrabold text-slate-800 text-base">NFC Scanner Network Ledger</h3>
+                  <p className="text-xs text-slate-400 font-semibold">Active Mifare readers registered in ASSETRA control hub</p>
+                </div>
+
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-600 focus:outline-none"
+                >
+                  <option value="">All Statuses</option>
+                  <option>Online</option>
+                  <option>Offline</option>
+                  <option>Sync Delay</option>
+                </select>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider">
+                      <th className="py-2.5">Device ID</th>
+                      <th className="py-2.5">Name</th>
+                      <th className="py-2.5">Location</th>
+                      <th className="py-2.5">Division</th>
+                      <th className="py-2.5">Status</th>
+                      <th className="py-2.5">Last Sync</th>
+                      <th className="py-2.5 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredDevices.map(d => (
+                      <tr key={d.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition duration-75">
+                        <td className="py-3 font-mono font-bold text-slate-500">{d.id}</td>
+                        <td className="py-3 font-bold text-slate-700">{d.name}</td>
+                        <td className="py-3 text-slate-500 font-semibold">{d.location}</td>
+                        <td className="py-3">
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded ${DEPT_COLORS[d.department].bg}`}>
+                            {d.department}
+                          </span>
+                        </td>
+                        <td className="py-3">
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${d.status === 'Online' ? 'bg-green-100 text-green-800' :
+                            d.status === 'Offline' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'
+                            }`}>
+                            {d.status}
+                          </span>
+                        </td>
+                        <td className="py-3 font-mono text-[10px] text-slate-400 font-semibold">{d.lastSync}</td>
+                        <td className="py-3 text-right space-x-2.5">
+                          <button
+                            onClick={() => {
+                              showToast(`Hard reset signal sent to device ${d.id}. Rebooting...`);
+                            }}
+                            className="text-slate-400 hover:text-slate-800 transition"
+                            title="Reboot Reader"
+                          >
+                            <Icon name="refresh" className="w-4 h-4 inline" />
+                          </button>
+                          <button
+                            onClick={() => showToast(`Device settings loaded for ${d.id}.`)}
+                            className="text-slate-400 hover:text-slate-800 transition"
+                            title="Configuration"
+                          >
+                            <Icon name="settings" className="w-4 h-4 inline" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Right panel: Locations overview */}
+          <div className="col-span-4 space-y-6">
+
+            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+              <h3 className="font-extrabold text-slate-800 text-sm">Deployment Locations Overview</h3>
+
+              <div className="grid grid-cols-2 gap-3">
+                {nfcDevices.map(d => (
+                  <div key={d.id} className="border border-slate-150 rounded-xl p-3 bg-slate-50/30 flex flex-col justify-between h-20">
+                    <span className="text-[10px] font-bold text-slate-400 truncate">{d.name}</span>
+                    <div className="flex justify-between items-center">
+                      <span className="text-[9px] font-bold text-slate-500 font-mono">{d.id}</span>
+                      <span className={`w-2 h-2 rounded-full ${d.status === 'Online' ? 'bg-emerald-500' : d.status === 'Offline' ? 'bg-red-500' : 'bg-amber-500'
+                        }`}></span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Sync diagnostics */}
+            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3">
+              <h3 className="font-extrabold text-slate-800 text-sm">System Latency Diagnostics</h3>
+              <div className="text-xs text-slate-500 space-y-2">
+                <div className="flex justify-between">
+                  <span>Hub Replication Lag:</span>
+                  <span className="font-bold text-slate-700">0.02 Seconds</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Active IP Leases:</span>
+                  <span className="font-bold text-slate-700">8 / 8 Active</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Packet Loss Rate:</span>
+                  <span className="font-bold text-emerald-600">0.00% (Nominal)</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      );
+    }
+
+    // ==========================================
+    // PAGE 8: SYSTEM NOTIFICATIONS COMPONENT
+    // ==========================================
+    function NotificationsPage({ notifications, setNotifications, showToast }) {
+      const [tab, setTab] = useState('All'); // 'All', 'Sent', 'Scheduled', 'Failed'
+
+      const [notifTitle, setNotifTitle] = useState('');
+      const [notifPreview, setNotifPreview] = useState('');
+      const [notifType, setNotifType] = useState('Announcement');
+      const [notifAudience, setNotifAudience] = useState('All Employees');
+
+      // Filtered
+      const filtered = useMemo(() => {
+        return notifications.filter(n => tab === 'All' ? true : n.status === tab);
+      }, [notifications, tab]);
+
+      const counts = useMemo(() => {
+        const total = notifications.length;
+        const sent = notifications.filter(n => n.status === 'Sent').length;
+        const scheduled = notifications.filter(n => n.status === 'Scheduled').length;
+        const failed = notifications.filter(n => n.status === 'Failed').length;
+        return { total, sent, scheduled, failed };
+      }, [notifications]);
+
+      // Dispath notification
+      const handleCreateNotif = (e) => {
+        e.preventDefault();
+
+        const newNotif = {
+          id: `NT${Date.now()}`,
+          title: notifTitle,
+          preview: notifPreview,
+          type: notifType,
+          audience: notifAudience,
+          status: 'Sent',
+          time: new Date().toISOString(),
+          sentBy: 'Admin Control Hub'
+        };
+
+        setNotifications([newNotif, ...notifications]);
+        setNotifTitle('');
+        setNotifPreview('');
+        showToast('Notification dispatched successfully.');
+      };
+
+      return (
+        <div className="grid grid-cols-12 gap-8 animate-slide-in">
+
+          {/* Left panel: notifications list */}
+          <div className="col-span-8 space-y-6">
+
+            {/* Ribbon metrics */}
+            <div className="grid grid-cols-4 gap-4">
+              {[
+                { label: 'Total notifications', val: counts.total, color: 'border-slate-300' },
+                { label: 'Sent alerts', val: counts.sent, color: 'border-green-400 bg-green-50/10' },
+                { label: 'Scheduled broadcasts', val: counts.scheduled, color: 'border-blue-400 bg-blue-50/10' },
+                { label: 'Dispatch Failures', val: counts.failed, color: 'border-red-400 bg-red-50/10' },
+              ].map((c, i) => (
+                <div key={i} className={`p-4 bg-white border border-slate-200 rounded-xl shadow-sm border-l-4 ${c.color} flex flex-col justify-between h-20`}>
+                  <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">{c.label}</span>
+                  <span className="text-xl font-black text-slate-800">{c.val}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* List box */}
+            <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4">
+              <div className="flex justify-between items-center flex-wrap gap-2">
+                <div>
+                  <h3 className="font-extrabold text-slate-800 text-base">Broadcast Registry Log</h3>
+                  <p className="text-xs text-slate-400 font-semibold">Recent alerts and notifications dispatched across NFC targets</p>
+                </div>
+
+                <div className="flex bg-slate-100 p-1 border rounded-lg space-x-1">
+                  {['All', 'Sent', 'Scheduled', 'Failed'].map(t => (
+                    <button
+                      key={t}
+                      onClick={() => setTab(t)}
+                      className={`text-xs px-3 py-1 font-bold rounded-md transition ${tab === t ? 'bg-white text-navy-800 shadow' : 'text-slate-500 hover:text-slate-800'
+                        }`}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="overflow-y-auto max-h-[500px] space-y-4 pr-1">
+                {filtered.map(notif => (
+                  <div key={notif.id} className="border border-slate-150 rounded-xl p-4 bg-slate-50/20 hover:bg-slate-50 transition flex items-start space-x-4">
+                    <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center border shrink-0">
+                      <Icon
+                        name={
+                          notif.type === 'Alert' ? 'alertCircle' :
+                            notif.type === 'Reminder' ? 'clock' :
+                              notif.type === 'Leave' ? 'leave' : 'notifications'
+                        }
+                        className={`w-5 h-5 ${notif.type === 'Alert' ? 'text-red-500' :
+                          notif.type === 'Reminder' ? 'text-amber-500' :
+                            notif.type === 'Leave' ? 'text-blue-500' : 'text-indigo-500'
+                          }`}
+                      />
+                    </div>
+
+                    <div className="flex-1 space-y-1">
+                      <div className="flex justify-between items-start">
+                        <h4 className="font-extrabold text-slate-800 text-sm">{notif.title}</h4>
+                        <span className={`px-2 py-0.5 rounded text-[8px] font-bold ${notif.status === 'Sent' ? 'bg-green-150 text-green-800' :
+                          notif.status === 'Scheduled' ? 'bg-blue-150 text-blue-800' : 'bg-red-150 text-red-800'
+                          }`}>
+                          {notif.status}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 font-semibold leading-relaxed">{notif.preview}</p>
+
+                      <div className="flex justify-between text-[10px] text-slate-400 font-bold pt-2">
+                        <span>Target: {notif.audience} • Sent By: {notif.sentBy}</span>
+                        <span>{notif.time.slice(0, 10)} {notif.time.slice(11, 16)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </div>
+
+          {/* Right panel: Dispatch form & switches */}
+          <div className="col-span-4 space-y-6">
+
+            {/* Quick dispatch form */}
+            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+              <h3 className="font-extrabold text-slate-800 text-sm">Dispatched New Broadcast</h3>
+
+              <form onSubmit={handleCreateNotif} className="space-y-3">
+                <div>
+                  <label className="block text-[9px] font-bold text-slate-450 uppercase mb-1">Title</label>
+                  <input
+                    type="text"
+                    value={notifTitle}
+                    onChange={(e) => setNotifTitle(e.target.value)}
+                    required
+                    placeholder="E.g. Safety Drill Schedule"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-semibold focus:outline-none text-slate-700 shadow-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[9px] font-bold text-slate-450 uppercase mb-1">Alert Category</label>
+                  <select
+                    value={notifType}
+                    onChange={(e) => setNotifType(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-semibold focus:outline-none text-slate-700 shadow-sm"
+                  >
+                    <option>Announcement</option>
+                    <option>Alert</option>
+                    <option>Reminder</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[9px] font-bold text-slate-450 uppercase mb-1">Target Audience</label>
+                  <select
+                    value={notifAudience}
+                    onChange={(e) => setNotifAudience(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-semibold focus:outline-none text-slate-700 shadow-sm"
+                  >
+                    <option>All Employees</option>
+                    <option>IT Department</option>
+                    <option>HSE Department</option>
+                    <option>Operations Department</option>
+                    <option>All Managers</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[9px] font-bold text-slate-450 uppercase mb-1">Message Body</label>
+                  <textarea
+                    rows="3"
+                    value={notifPreview}
+                    onChange={(e) => setNotifPreview(e.target.value)}
+                    required
+                    placeholder="Enter broadcast content details..."
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-semibold focus:outline-none text-slate-700 shadow-sm"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full bg-accent-orange hover:bg-orange-600 text-white font-bold py-2 rounded-lg text-xs shadow-md transition"
+                >
+                  Send Broadcast
+                </button>
+              </form>
+            </div>
+
+            {/* Notification Switch toggles */}
+            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3">
+              <h3 className="font-extrabold text-slate-800 text-sm">System Alerts Dispatch Routes</h3>
+
+              <div className="space-y-2.5 text-xs text-slate-600 font-semibold">
+                {[
+                  { label: 'E-Mail Dispatching Route', state: true },
+                  { label: 'In-App Dashboard Alerts', state: true },
+                  { label: 'SMS Cellphone Gateway', state: false },
+                  { label: 'Push Alert Network', state: true },
+                ].map((s, i) => (
+                  <div key={i} className="flex justify-between items-center">
+                    <span>{s.label}</span>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${s.state ? 'bg-green-150 text-green-800' : 'bg-slate-200 text-slate-650'
+                      }`}>
+                      {s.state ? 'Enabled' : 'Disabled'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      );
+    }
+
+    // Render the React application
+    const rootElement = document.getElementById('root');
+    const root = ReactDOM.createRoot(rootElement);
+    root.render(<App />);
+  </script>
+</body>
+
+</html>
